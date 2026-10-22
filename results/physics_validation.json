@@ -1,0 +1,57 @@
+{
+  "altitude_km": 515.0,
+  "period_min": 94.779,
+  "eclipse_validation": [
+    {
+      "beta_deg": 0,
+      "eclipse_analytic": 0.3761,
+      "eclipse_sim": 0.3759,
+      "abs_err": 0.0002
+    },
+    {
+      "beta_deg": 20,
+      "eclipse_analytic": 0.3677,
+      "eclipse_sim": 0.3679,
+      "abs_err": 0.0002
+    },
+    {
+      "beta_deg": 40,
+      "eclipse_analytic": 0.335,
+      "eclipse_sim": 0.335,
+      "abs_err": 0.0001
+    },
+    {
+      "beta_deg": 60,
+      "eclipse_analytic": 0.2257,
+      "eclipse_sim": 0.226,
+      "abs_err": 0.0002
+    },
+    {
+      "beta_deg": 70,
+      "eclipse_analytic": 0.0,
+      "eclipse_sim": 0.0,
+      "abs_err": 0.0
+    },
+    {
+      "beta_deg": 75,
+      "eclipse_analytic": 0.0,
+      "eclipse_sim": 0.0,
+      "abs_err": 0.0
+    }
+  ],
+  "max_eclipse_abs_err": 0.0002,
+  "sim_10_orbits_s": 0.1115,
+  "sim_orbits_per_s": 89.7,
+  "nominal_soc_min": 0.8258,
+  "faulty_soc_min": 0.5979,
+  "nominal_temp_c_last3orbits": {
+    "min": -14.85,
+    "max": -4.36,
+    "mean": -9.44
+  },
+  "faulty_temp_c_last3orbits": {
+    "min": -8.77,
+    "max": 3.13,
+    "mean": -2.67
+  }
+}

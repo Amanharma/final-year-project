@@ -1,0 +1,59 @@
+{
+  "raw_samples": 303493,
+  "segments": 2123,
+  "channels": [
+    "CADC0872",
+    "CADC0873",
+    "CADC0874",
+    "CADC0884",
+    "CADC0886",
+    "CADC0888",
+    "CADC0890",
+    "CADC0892",
+    "CADC0894"
+  ],
+  "anomalous_segments": 434,
+  "nominal_segments": 1689,
+  "anomaly_ratio": 0.2044,
+  "train_segments": 1594,
+  "test_segments": 529,
+  "time_span": [
+    "2022-01-04 20:00:50+00:00",
+    "2022-06-02 15:10:42+00:00"
+  ],
+  "segment_len": {
+    "count": 2123.0,
+    "mean": 143.0,
+    "std": 152.3,
+    "min": 8.0,
+    "25%": 40.0,
+    "50%": 70.0,
+    "75%": 201.0,
+    "max": 1040.0
+  },
+  "sampling_rates": {
+    "5": 1330,
+    "1": 793
+  },
+  "feature_columns": [
+    "sampling",
+    "duration",
+    "len",
+    "mean",
+    "var",
+    "std",
+    "kurtosis",
+    "skew",
+    "n_peaks",
+    "smooth10_n_peaks",
+    "smooth20_n_peaks",
+    "diff_peaks",
+    "diff2_peaks",
+    "diff_var",
+    "diff2_var",
+    "gaps_squared",
+    "len_weighted",
+    "var_div_duration",
+    "var_div_len"
+  ]
+}
