@@ -1,0 +1,27 @@
+============================= test session starts =============================
+platform win32 -- Python 3.12.0, pytest-9.1.1, pluggy-1.7.0 -- C:\Users\ADMIN\OneDrive\Desktop\Digital Twin\final-year-project\.venv\Scripts\python.exe
+cachedir: .pytest_cache
+rootdir: C:\Users\ADMIN\OneDrive\Desktop\Digital Twin\final-year-project
+configfile: pytest.ini
+testpaths: tests
+plugins: anyio-4.15.1
+collecting ... collected 16 items
+
+tests/test_ingest_twin.py::test_channel_stats_use_training_only PASSED   [  6%]
+tests/test_ingest_twin.py::test_segment_features_deterministic_and_finite PASSED [ 12%]
+tests/test_ingest_twin.py::test_build_features_shapes PASSED             [ 18%]
+tests/test_ingest_twin.py::test_stream_marks_segment_ends PASSED         [ 25%]
+tests/test_ingest_twin.py::test_twin_stream_matches_batch PASSED         [ 31%]
+tests/test_ingest_twin.py::test_physics_residual_zero_for_nominal_and_flags_fault PASSED [ 37%]
+tests/test_physics.py::test_period_matches_kepler PASSED                 [ 43%]
+tests/test_physics.py::test_simulated_eclipse_matches_analytic[0] PASSED [ 50%]
+tests/test_physics.py::test_simulated_eclipse_matches_analytic[20] PASSED [ 56%]
+tests/test_physics.py::test_simulated_eclipse_matches_analytic[40] PASSED [ 62%]
+tests/test_physics.py::test_simulated_eclipse_matches_analytic[60] PASSED [ 68%]
+tests/test_physics.py::test_simulated_eclipse_matches_analytic[75] PASSED [ 75%]
+tests/test_physics.py::test_no_eclipse_above_critical_beta PASSED        [ 81%]
+tests/test_physics.py::test_soc_bounded_even_with_faults PASSED          [ 87%]
+tests/test_physics.py::test_faults_change_behaviour_only_after_onset PASSED [ 93%]
+tests/test_physics.py::test_sensor_stuck_freezes_channel PASSED          [100%]
+
+============================= 16 passed in 7.98s ==============================

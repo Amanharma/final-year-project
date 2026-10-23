@@ -1,0 +1,22 @@
+{
+  "best": {
+    "features": "published",
+    "n_features": 27,
+    "model": "SVM-RBF",
+    "accuracy": 0.9659735349716446,
+    "precision": 0.9357798165137615,
+    "recall": 0.9026548672566371,
+    "f1": 0.918918918918919,
+    "roc_auc": 0.9858747447243023,
+    "tp": 102,
+    "fp": 7,
+    "fn": 11,
+    "tn": 409,
+    "fit_s": 0.064020199999959,
+    "infer_ms_per_segment": 0.12255330812835956
+  },
+  "n_train": 1594,
+  "n_test": 529,
+  "test_anomalies": 113,
+  "seed": 42
+}

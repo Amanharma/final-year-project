@@ -23,6 +23,9 @@ python data/download.py         # OPSSAT-AD from Zenodo (~19 MB)
 ```bash
 python experiments/eda.py             # dataset statistics -> results/eda_*
 python experiments/physics_check.py   # physics twin validation -> results/physics_*
+python experiments/classical_baselines.py  # classical detectors -> results/classical_*
+python experiments/twin_replay.py     # end-to-end twin replay + fault injection -> results/twin_*
+python -m pytest                      # unit and integration tests
 ```
 
 ## Dataset credit

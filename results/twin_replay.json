@@ -1,0 +1,59 @@
+{
+  "live_model": "SVM-RBF on 'own' features",
+  "telemetry_path": {
+    "test_segments_replayed": 529,
+    "samples_replayed": 78315,
+    "wall_s": 11.286,
+    "throughput_samples_per_s": 6939.4,
+    "segment_scoring_latency_ms": {
+      "p50": 15.486,
+      "p95": 31.588,
+      "max": 104.959
+    },
+    "stream_vs_batch_agreement": 1.0,
+    "stream_f1": 0.9075,
+    "stream_precision": 0.9035,
+    "stream_recall": 0.9115,
+    "alerts_raised": 57,
+    "final_health": 0.1305,
+    "final_channel_risk": {
+      "CADC0872": 0.487,
+      "CADC0886": 0.21,
+      "CADC0884": 0.0,
+      "CADC0888": 0.061,
+      "CADC0873": 0.499,
+      "CADC0874": 0.869,
+      "CADC0892": 0.001,
+      "CADC0894": 0.084,
+      "CADC0890": 0.51
+    }
+  },
+  "physics_path": {
+    "sensor_noise_sigma": {
+      "solar_w": 0.5,
+      "soc": 0.005,
+      "temp_k": 0.5
+    },
+    "nominal": {
+      "false_alarm_rate": 0.0
+    },
+    "panel_degradation_30pct": {
+      "false_alarm_rate": 0.0,
+      "detected": true,
+      "detection_delay_min": 0.05,
+      "alert_rate_after_onset": 0.6325
+    },
+    "battery_fade_40pct": {
+      "false_alarm_rate": 0.0,
+      "detected": true,
+      "detection_delay_min": 43.72,
+      "alert_rate_after_onset": 0.3259
+    },
+    "heater_stuck_on_4W": {
+      "false_alarm_rate": 0.0,
+      "detected": true,
+      "detection_delay_min": 33.72,
+      "alert_rate_after_onset": 0.903
+    }
+  }
+}
