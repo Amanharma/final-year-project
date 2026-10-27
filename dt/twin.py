@@ -95,8 +95,14 @@ class SatelliteTwin:
         return pd.DataFrame([f])[self.columns]
 
     def _score_segment(self, seg_id: int, channel: str) -> dict:
-        t0 = time.perf_counter()
         ts, vals = zip(*self._buf.pop(seg_id))
+        return self.score_segment(channel, list(ts), list(vals), seg_id)
+
+    def score_segment(self, channel: str, ts: list, vals: list, seg_id: int = -1) -> dict:
+        """Score one complete segment and update the twin state."""
+        if channel not in self.stats.index:
+            raise KeyError(f"unknown channel {channel}")
+        t0 = time.perf_counter()
         X = self._features(channel, list(ts), np.asarray(vals, dtype=float))
         pred = int(self.model.predict(X)[0])
         score = float(self.model.decision_function(X)[0]) if hasattr(self.model, "decision_function") \

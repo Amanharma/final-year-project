@@ -1,0 +1,7 @@
+endpoint,requests,errors,p50_ms,p95_ms,p99_ms,mean_ms,throughput_rps
+GET /twin/state,1000,0,3.592,5.526,8.415,3.848,259.906
+POST /anomaly (60 samples),1000,0,18.73,32.557,50.981,20.885,47.881
+POST /physics,1000,0,4.845,8.652,18.719,5.647,177.077
+POST /schedule greedy (8 passes),200,0,13.443,19.289,31.096,13.953,71.672
+POST /schedule exact (8 passes),200,0,13.371,23.669,31.567,15.202,65.782
+POST /schedule qaoa p=1 (6 passes),5,0,7236.869,9068.958,9326.362,7581.767,0.132

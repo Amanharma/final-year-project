@@ -1,0 +1,88 @@
+{
+  "n_kernel_train": 400,
+  "n_vqc_train": 200,
+  "n_test": 529,
+  "best_quantum": {
+    "model": "QSVC",
+    "qubits_or_dims": 4,
+    "n_train": 400,
+    "precision": 0.5763888888888888,
+    "recall": 0.7345132743362832,
+    "f1": 0.6459143968871596,
+    "roc_auc": 0.8570030633083731,
+    "fit_s": 5.16349530000025,
+    "infer_ms_per_segment": 28.14821077504821
+  },
+  "best_classical_same_features": {
+    "model": "SVM-RBF",
+    "qubits_or_dims": 6,
+    "n_train": 400,
+    "precision": 0.7669172932330827,
+    "recall": 0.9026548672566371,
+    "f1": 0.8292682926829268,
+    "roc_auc": 0.9664312457454051,
+    "fit_s": 0.022909299999810173,
+    "infer_ms_per_segment": 0.07964461247558234
+  },
+  "vqc_final_loss": {
+    "2": 1.0171,
+    "4": 0.933,
+    "6": 0.972
+  },
+  "kernel_scaling": [
+    {
+      "n": 50,
+      "kernel_entries": 2500,
+      "seconds": 0.2524
+    },
+    {
+      "n": 100,
+      "kernel_entries": 10000,
+      "seconds": 0.5379
+    },
+    {
+      "n": 200,
+      "kernel_entries": 40000,
+      "seconds": 1.6096
+    },
+    {
+      "n": 400,
+      "kernel_entries": 160000,
+      "seconds": 4.6397
+    },
+    {
+      "n": 800,
+      "kernel_entries": 640000,
+      "seconds": 13.8541
+    },
+    {
+      "n": 1594,
+      "kernel_entries": 2540836,
+      "seconds": 47.8696
+    }
+  ],
+  "circuits": [
+    {
+      "qubits": 2,
+      "feature_map_depth": 10,
+      "vqc_circuit_depth": 17,
+      "vqc_trainable_params": 8,
+      "cx_count_vqc": 7
+    },
+    {
+      "qubits": 4,
+      "feature_map_depth": 19,
+      "vqc_circuit_depth": 30,
+      "vqc_trainable_params": 16,
+      "cx_count_vqc": 21
+    },
+    {
+      "qubits": 6,
+      "feature_map_depth": 25,
+      "vqc_circuit_depth": 38,
+      "vqc_trainable_params": 24,
+      "cx_count_vqc": 35
+    }
+  ],
+  "seed": 42
+}

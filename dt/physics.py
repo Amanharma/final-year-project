@@ -13,6 +13,15 @@ R_E = 6_371_000.0         # mean Earth radius [m]
 SOLAR = 1361.0            # solar constant [W/m^2]
 SIGMA = 5.670374419e-8    # Stefan-Boltzmann [W/m^2/K^4]
 EARTH_IR = 237.0          # mean Earth OLR [W/m^2]
+OMEGA_E = 7.2921159e-5    # Earth rotation rate [rad/s]
+
+# downlink rates are illustrative values for a CubeSat S-band link
+GROUND_STATIONS = [
+    {"name": "ESOC-Darmstadt", "lat": 49.87, "lon": 8.62, "rate_mbps": 1.0},
+    {"name": "Kiruna", "lat": 67.86, "lon": 20.96, "rate_mbps": 1.0},
+    {"name": "Svalbard", "lat": 78.23, "lon": 15.41, "rate_mbps": 2.0},
+    {"name": "ISTRAC-Bengaluru", "lat": 13.03, "lon": 77.51, "rate_mbps": 0.5},
+]
 
 
 @dataclass
@@ -137,27 +146,32 @@ class SatellitePhysics:
         out["fault"] = fault_mask.astype(int)
         return out
 
-    def ground_passes(self, stations: list[tuple[str, float]], n_orbits: int = 6) -> list[dict]:
-        """Simplified pass windows: a station at phase angle phi (deg along the ground track)
-        is visible when the satellite is within the half-angle cone set by a 10 deg
-        elevation mask. Ground-track drift between orbits is modelled by rotating each
-        station's phase by Earth's rotation during one period."""
-        T = self.orbit.period_s
-        h = self.orbit.altitude_m
-        el = np.radians(10)
-        # Earth central angle of the visibility circle
-        lam = np.arccos(R_E / (R_E + h) * np.cos(el)) - el
-        half_window_s = lam / (2 * np.pi) * T
-        drift = 360.0 * T / 86164.0          # deg of Earth rotation per orbit
+    def ground_passes(self, stations: list[dict] | None = None, hours: float = 24.0, dt_s: float = 10.0,
+                      inclination_deg: float = 97.4, min_elevation_deg: float = 10.0,
+                      raan_deg: float = 0.0) -> list[dict]:
+        """Pass windows from geometry: circular inclined orbit (two-body, no J2 drift) and
+        ground stations on a rotating spherical Earth. A pass is a contiguous interval with
+        elevation above the mask. Returns start/end/duration/max-elevation per pass."""
+        stations = stations or GROUND_STATIONS
+        t = np.arange(0.0, hours * 3600.0, dt_s)
+        a, i, raan = self.orbit.a, np.radians(inclination_deg), np.radians(raan_deg)
+        u = 2 * np.pi * t / self.orbit.period_s
+        r_sat = a * np.stack([np.cos(raan) * np.cos(u) - np.sin(raan) * np.sin(u) * np.cos(i),
+                              np.sin(raan) * np.cos(u) + np.cos(raan) * np.sin(u) * np.cos(i),
+                              np.sin(u) * np.sin(i)], axis=1)
+        theta = OMEGA_E * t
         passes = []
-        for k in range(n_orbits):
-            for name, phi in stations:
-                phase = (phi + k * drift) % 360
-                # visibility only on orbits whose ground track comes close enough
-                if np.cos(np.radians(phase - 180)) < 0.2:
-                    continue
-                centre = k * T + phase / 360 * T
-                passes.append({"station": name, "orbit": k,
-                               "start_s": round(centre - half_window_s, 1),
-                               "end_s": round(centre + half_window_s, 1)})
+        for st in stations:
+            lat, lon = np.radians(st["lat"]), np.radians(st["lon"])
+            n_hat = np.stack([np.cos(lat) * np.cos(lon + theta), np.cos(lat) * np.sin(lon + theta),
+                              np.full_like(t, np.sin(lat))], axis=1)
+            rel = r_sat - R_E * n_hat
+            el = np.degrees(np.arcsin(np.einsum("ij,ij->i", rel, n_hat) / np.linalg.norm(rel, axis=1)))
+            vis = el >= min_elevation_deg
+            edges = np.flatnonzero(np.diff(np.concatenate([[0], vis.astype(int), [0]])))
+            for s0, s1 in zip(edges[::2], edges[1::2]):
+                passes.append({"station": st["name"], "start_s": float(t[s0]), "end_s": float(t[s1 - 1]),
+                               "duration_s": float(t[s1 - 1] - t[s0] + dt_s),
+                               "max_elev_deg": round(float(el[s0:s1].max()), 2),
+                               "rate_mbps": st["rate_mbps"]})
         return sorted(passes, key=lambda p: p["start_s"])

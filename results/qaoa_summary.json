@@ -1,0 +1,13 @@
+{
+  "instances": 12,
+  "runs": 36,
+  "qaoa_found_optimum_runs": 35,
+  "qaoa_infeasible_runs": 0,
+  "greedy_optimal_instances": 11,
+  "greedy_min_ratio": 0.94503,
+  "exact_qubo_matches_bruteforce": true,
+  "max_qubits": 16,
+  "mean_p_opt_vs_random": 1.298,
+  "random_sampling_hit_prob_at_max_n": 0.9817,
+  "shots": 4096
+}

@@ -1,0 +1,315 @@
+{
+  "replay": {
+    "samples_seen": 935,
+    "segments_scored": 50,
+    "health": 0.79,
+    "channel_risk": {
+      "CADC0872": 0.0,
+      "CADC0886": 0.21,
+      "CADC0884": 0.0,
+      "CADC0888": 0.0
+    },
+    "active_alerts": [],
+    "physics_residual": {},
+    "last_update": "2022-01-05 07:07:36+00:00"
+  },
+  "schedule_example": {
+    "greedy": {
+      "solver": "greedy",
+      "budget_tx_minutes": 48,
+      "feasible": true,
+      "objective_mb_weighted": 631.12,
+      "tx_minutes_used": 28,
+      "passes": [
+        {
+          "station": "Svalbard",
+          "start_s": 41210.0,
+          "end_s": 41620.0,
+          "duration_s": 420.0,
+          "max_elev_deg": 36.0,
+          "rate_mbps": 2.0,
+          "selected": true,
+          "value": 229.98,
+          "tx_minutes": 7
+        },
+        {
+          "station": "Kiruna",
+          "start_s": 41350.0,
+          "end_s": 41790.0,
+          "duration_s": 450.0,
+          "max_elev_deg": 71.37,
+          "rate_mbps": 1.0,
+          "selected": false,
+          "value": 122.77,
+          "tx_minutes": 8
+        },
+        {
+          "station": "ESOC-Darmstadt",
+          "start_s": 41650.0,
+          "end_s": 42080.0,
+          "duration_s": 440.0,
+          "max_elev_deg": 50.89,
+          "rate_mbps": 1.0,
+          "selected": true,
+          "value": 119.14,
+          "tx_minutes": 8
+        },
+        {
+          "station": "Svalbard",
+          "start_s": 46850.0,
+          "end_s": 47290.0,
+          "duration_s": 450.0,
+          "max_elev_deg": 75.78,
+          "rate_mbps": 2.0,
+          "selected": true,
+          "value": 215.63,
+          "tx_minutes": 8
+        },
+        {
+          "station": "Kiruna",
+          "start_s": 46990.0,
+          "end_s": 47380.0,
+          "duration_s": 400.0,
+          "max_elev_deg": 31.6,
+          "rate_mbps": 1.0,
+          "selected": false,
+          "value": 95.54,
+          "tx_minutes": 7
+        },
+        {
+          "station": "ESOC-Darmstadt",
+          "start_s": 47340.0,
+          "end_s": 47610.0,
+          "duration_s": 280.0,
+          "max_elev_deg": 16.36,
+          "rate_mbps": 1.0,
+          "selected": true,
+          "value": 66.37,
+          "tx_minutes": 5
+        }
+      ],
+      "conflicts": [
+        [
+          0,
+          1
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          3,
+          4
+        ],
+        [
+          4,
+          5
+        ]
+      ]
+    },
+    "exact": {
+      "solver": "exact",
+      "budget_tx_minutes": 48,
+      "feasible": true,
+      "objective_mb_weighted": 631.12,
+      "tx_minutes_used": 28,
+      "passes": [
+        {
+          "station": "Svalbard",
+          "start_s": 41210.0,
+          "end_s": 41620.0,
+          "duration_s": 420.0,
+          "max_elev_deg": 36.0,
+          "rate_mbps": 2.0,
+          "selected": true,
+          "value": 229.98,
+          "tx_minutes": 7
+        },
+        {
+          "station": "Kiruna",
+          "start_s": 41350.0,
+          "end_s": 41790.0,
+          "duration_s": 450.0,
+          "max_elev_deg": 71.37,
+          "rate_mbps": 1.0,
+          "selected": false,
+          "value": 122.77,
+          "tx_minutes": 8
+        },
+        {
+          "station": "ESOC-Darmstadt",
+          "start_s": 41650.0,
+          "end_s": 42080.0,
+          "duration_s": 440.0,
+          "max_elev_deg": 50.89,
+          "rate_mbps": 1.0,
+          "selected": true,
+          "value": 119.14,
+          "tx_minutes": 8
+        },
+        {
+          "station": "Svalbard",
+          "start_s": 46850.0,
+          "end_s": 47290.0,
+          "duration_s": 450.0,
+          "max_elev_deg": 75.78,
+          "rate_mbps": 2.0,
+          "selected": true,
+          "value": 215.63,
+          "tx_minutes": 8
+        },
+        {
+          "station": "Kiruna",
+          "start_s": 46990.0,
+          "end_s": 47380.0,
+          "duration_s": 400.0,
+          "max_elev_deg": 31.6,
+          "rate_mbps": 1.0,
+          "selected": false,
+          "value": 95.54,
+          "tx_minutes": 7
+        },
+        {
+          "station": "ESOC-Darmstadt",
+          "start_s": 47340.0,
+          "end_s": 47610.0,
+          "duration_s": 280.0,
+          "max_elev_deg": 16.36,
+          "rate_mbps": 1.0,
+          "selected": true,
+          "value": 66.37,
+          "tx_minutes": 5
+        }
+      ],
+      "conflicts": [
+        [
+          0,
+          1
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          3,
+          4
+        ],
+        [
+          4,
+          5
+        ]
+      ]
+    },
+    "qaoa": {
+      "solver": "qaoa",
+      "budget_tx_minutes": 48,
+      "feasible": true,
+      "objective_mb_weighted": 631.12,
+      "tx_minutes_used": 28,
+      "passes": [
+        {
+          "station": "Svalbard",
+          "start_s": 41210.0,
+          "end_s": 41620.0,
+          "duration_s": 420.0,
+          "max_elev_deg": 36.0,
+          "rate_mbps": 2.0,
+          "selected": true,
+          "value": 229.98,
+          "tx_minutes": 7
+        },
+        {
+          "station": "Kiruna",
+          "start_s": 41350.0,
+          "end_s": 41790.0,
+          "duration_s": 450.0,
+          "max_elev_deg": 71.37,
+          "rate_mbps": 1.0,
+          "selected": false,
+          "value": 122.77,
+          "tx_minutes": 8
+        },
+        {
+          "station": "ESOC-Darmstadt",
+          "start_s": 41650.0,
+          "end_s": 42080.0,
+          "duration_s": 440.0,
+          "max_elev_deg": 50.89,
+          "rate_mbps": 1.0,
+          "selected": true,
+          "value": 119.14,
+          "tx_minutes": 8
+        },
+        {
+          "station": "Svalbard",
+          "start_s": 46850.0,
+          "end_s": 47290.0,
+          "duration_s": 450.0,
+          "max_elev_deg": 75.78,
+          "rate_mbps": 2.0,
+          "selected": true,
+          "value": 215.63,
+          "tx_minutes": 8
+        },
+        {
+          "station": "Kiruna",
+          "start_s": 46990.0,
+          "end_s": 47380.0,
+          "duration_s": 400.0,
+          "max_elev_deg": 31.6,
+          "rate_mbps": 1.0,
+          "selected": false,
+          "value": 95.54,
+          "tx_minutes": 7
+        },
+        {
+          "station": "ESOC-Darmstadt",
+          "start_s": 47340.0,
+          "end_s": 47610.0,
+          "duration_s": 280.0,
+          "max_elev_deg": 16.36,
+          "rate_mbps": 1.0,
+          "selected": true,
+          "value": 66.37,
+          "tx_minutes": 5
+        }
+      ],
+      "conflicts": [
+        [
+          0,
+          1
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          3,
+          4
+        ],
+        [
+          4,
+          5
+        ]
+      ]
+    }
+  },
+  "final_state": {
+    "samples_seen": 935,
+    "segments_scored": 1050,
+    "health": 0.0,
+    "channel_risk": {
+      "CADC0872": 0.0,
+      "CADC0886": 0.21,
+      "CADC0884": 0.0,
+      "CADC0888": 0.0
+    },
+    "active_alerts": [],
+    "physics_residual": {
+      "solar_w": -4.2972,
+      "soc": -0.05,
+      "temp_k": -18.8757
+    },
+    "last_update": "2022-01-05 07:07:36+00:00"
+  }
+}

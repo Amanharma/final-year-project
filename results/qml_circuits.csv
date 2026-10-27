@@ -1,0 +1,4 @@
+qubits,feature_map_depth,vqc_circuit_depth,vqc_trainable_params,cx_count_vqc
+2,10,17,8,7
+4,19,30,16,21
+6,25,38,24,35
