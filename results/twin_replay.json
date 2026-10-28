@@ -3,12 +3,12 @@
   "telemetry_path": {
     "test_segments_replayed": 529,
     "samples_replayed": 78315,
-    "wall_s": 11.286,
-    "throughput_samples_per_s": 6939.4,
+    "wall_s": 7.875,
+    "throughput_samples_per_s": 9944.6,
     "segment_scoring_latency_ms": {
-      "p50": 15.486,
-      "p95": 31.588,
-      "max": 104.959
+      "p50": 10.483,
+      "p95": 16.731,
+      "max": 110.115
     },
     "stream_vs_batch_agreement": 1.0,
     "stream_f1": 0.9075,

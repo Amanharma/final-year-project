@@ -50,9 +50,12 @@ def make_vqc(d: int, maxiter: int = 100, shots: int = 1024, history: list | None
         if history is not None:
             history.append(float(loss))
 
-    return VQC(feature_map=feature_map(d), ansatz=real_amplitudes(d, reps=3),
-               optimizer=COBYLA(maxiter=maxiter),
-               sampler=StatevectorSampler(default_shots=shots, seed=SEED), callback=cb)
+    ansatz = real_amplitudes(d, reps=3)
+    # VQC draws random initial weights unless given some; seed them so runs are reproducible
+    init = np.random.default_rng(SEED).uniform(-np.pi, np.pi, ansatz.num_parameters)
+    return VQC(feature_map=feature_map(d), ansatz=ansatz, optimizer=COBYLA(maxiter=maxiter),
+               sampler=StatevectorSampler(default_shots=shots, seed=SEED), callback=cb,
+               initial_point=init)
 
 
 def circuit_stats(d: int) -> dict:

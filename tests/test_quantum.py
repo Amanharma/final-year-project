@@ -3,7 +3,7 @@ import pytest
 from qiskit_machine_learning.kernels import FidelityStatevectorKernel
 
 from dt.physics import SatellitePhysics
-from dt.quantum_ml import balanced_subsample, feature_map, make_qsvc, make_reducer
+from dt.quantum_ml import balanced_subsample, feature_map, make_qsvc, make_reducer, make_vqc
 from dt.quantum_opt import (brute_force, build_problem, energy_budget_units, feasible, greedy,
                             objective, qubo_stats, solve_exact_qubo, solve_qaoa)
 
@@ -82,6 +82,14 @@ def test_qsvc_learns_separable_toy():
     red = make_reducer(2).fit(X)
     model = make_qsvc(2).fit(red.transform(X), y)
     assert (model.predict(red.transform(X)) == y).mean() >= 0.95
+
+
+def test_vqc_training_is_reproducible():
+    rng = np.random.default_rng(2)
+    X = rng.uniform(0, np.pi, (16, 2))
+    y = (X[:, 0] > np.pi / 2).astype(int)
+    runs = [make_vqc(2, maxiter=5).fit(X, y).predict(X) for _ in range(2)]
+    np.testing.assert_array_equal(runs[0], runs[1])
 
 
 def test_balanced_subsample():

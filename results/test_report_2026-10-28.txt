@@ -1,0 +1,59 @@
+============================= test session starts =============================
+platform win32 -- Python 3.12.0, pytest-9.1.1, pluggy-1.7.0 -- C:\Users\ADMIN\OneDrive\Desktop\Digital Twin\final-year-project\.venv\Scripts\python.exe
+rootdir: C:\Users\ADMIN\OneDrive\Desktop\Digital Twin\final-year-project
+configfile: pytest.ini
+testpaths: tests
+plugins: anyio-4.15.1
+collecting ... collected 38 items
+
+tests/test_api.py::test_health PASSED                                    [  2%]
+tests/test_api.py::test_replay_updates_state PASSED                      [  5%]
+tests/test_api.py::test_anomaly_endpoint_and_validation PASSED           [  7%]
+tests/test_api.py::test_physics_endpoint_flags_fault PASSED              [ 10%]
+tests/test_api.py::test_simulate_validation PASSED                       [ 13%]
+tests/test_api.py::test_schedule_solvers_feasible[greedy] PASSED         [ 15%]
+tests/test_api.py::test_schedule_solvers_feasible[exact] PASSED          [ 18%]
+tests/test_api.py::test_schedule_solvers_feasible[qaoa] PASSED           [ 21%]
+tests/test_api.py::test_schedule_low_battery_selects_nothing PASSED      [ 23%]
+tests/test_api.py::test_schedule_qaoa_size_limit PASSED                  [ 26%]
+tests/test_ingest_twin.py::test_channel_stats_use_training_only PASSED   [ 28%]
+tests/test_ingest_twin.py::test_segment_features_deterministic_and_finite PASSED [ 31%]
+tests/test_ingest_twin.py::test_build_features_shapes PASSED             [ 34%]
+tests/test_ingest_twin.py::test_stream_marks_segment_ends PASSED         [ 36%]
+tests/test_ingest_twin.py::test_twin_stream_matches_batch PASSED         [ 39%]
+tests/test_ingest_twin.py::test_physics_residual_zero_for_nominal_and_flags_fault PASSED [ 42%]
+tests/test_physics.py::test_period_matches_kepler PASSED                 [ 44%]
+tests/test_physics.py::test_simulated_eclipse_matches_analytic[0] PASSED [ 47%]
+tests/test_physics.py::test_simulated_eclipse_matches_analytic[20] PASSED [ 50%]
+tests/test_physics.py::test_simulated_eclipse_matches_analytic[40] PASSED [ 52%]
+tests/test_physics.py::test_simulated_eclipse_matches_analytic[60] PASSED [ 55%]
+tests/test_physics.py::test_simulated_eclipse_matches_analytic[75] PASSED [ 57%]
+tests/test_physics.py::test_no_eclipse_above_critical_beta PASSED        [ 60%]
+tests/test_physics.py::test_soc_bounded_even_with_faults PASSED          [ 63%]
+tests/test_physics.py::test_faults_change_behaviour_only_after_onset PASSED [ 65%]
+tests/test_physics.py::test_sensor_stuck_freezes_channel PASSED          [ 68%]
+tests/test_quantum.py::test_conflicts_and_costs PASSED                   [ 71%]
+tests/test_quantum.py::test_feasibility_rules PASSED                     [ 73%]
+tests/test_quantum.py::test_exact_qubo_equals_brute_force PASSED         [ 76%]
+tests/test_quantum.py::test_greedy_is_feasible_and_bounded PASSED        [ 78%]
+tests/test_quantum.py::test_anomaly_priority_boosts_later_passes PASSED  [ 81%]
+tests/test_quantum.py::test_energy_budget_from_soc PASSED                [ 84%]
+tests/test_quantum.py::test_qaoa_returns_feasible_solution_on_toy PASSED [ 86%]
+tests/test_quantum.py::test_geometric_passes_are_plausible PASSED        [ 89%]
+tests/test_quantum.py::test_quantum_kernel_is_valid PASSED               [ 92%]
+tests/test_quantum.py::test_qsvc_learns_separable_toy PASSED             [ 94%]
+tests/test_quantum.py::test_vqc_training_is_reproducible PASSED          [ 97%]
+tests/test_quantum.py::test_balanced_subsample PASSED                    [100%]
+
+============================== warnings summary ===============================
+tests/test_api.py::test_health
+  C:\Users\ADMIN\OneDrive\Desktop\Digital Twin\final-year-project\.venv\Lib\site-packages\fastapi\testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+tests/test_quantum.py::test_vqc_training_is_reproducible
+tests/test_quantum.py::test_vqc_training_is_reproducible
+  C:\Users\ADMIN\OneDrive\Desktop\Digital Twin\final-year-project\.venv\Lib\site-packages\scipy\_external\pyprima\common\preproc.py:68: UserWarning: COBYLA: Invalid MAXFUN; it should be at least num_vars + 2; it is set to 10
+    warn(f'{solver}: Invalid MAXFUN; it should be at least {min_maxfun_str}; it is set to {maxfun}')
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+======================= 38 passed, 3 warnings in 24.17s =======================

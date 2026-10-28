@@ -40,8 +40,8 @@
     }
   ],
   "max_eclipse_abs_err": 0.0002,
-  "sim_10_orbits_s": 0.1115,
-  "sim_orbits_per_s": 89.7,
+  "sim_10_orbits_s": 0.1114,
+  "sim_orbits_per_s": 89.8,
   "nominal_soc_min": 0.8258,
   "faulty_soc_min": 0.5979,
   "nominal_temp_c_last3orbits": {
