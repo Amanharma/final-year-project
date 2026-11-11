@@ -7,9 +7,6 @@ Paper:  Ruszczak et al., "The OPS-SAT benchmark for detecting anomalies in satel
 Files land in data/raw/opssat/:
   segments.csv  raw telemetry samples (channel, timestamp, value, anomaly, segment, train)
   dataset.csv   per-segment engineered features published with the benchmark
-
-Note: the NASA SMAP/MSL archive (s3://telemanom/data.zip) returned HTTP 403 on
-22-Oct-2026, which is why OPS-SAT is the primary dataset of this project.
 """
 from pathlib import Path
 

@@ -1,0 +1,19 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+title: "Hybrid Quantum-Classical Digital Twin for Satellite Health Monitoring and Ground-Station Scheduling"
+type: software
+authors:
+  - family-names: Sharma
+    given-names: Aman
+    affiliation: "IILM University, Greater Noida, India"
+repository-code: "https://github.com/Amanharma/final-year-project"
+license: MIT
+version: "1.0.0"
+date-released: "2026-11-11"
+keywords:
+  - digital twin
+  - satellite telemetry
+  - anomaly detection
+  - quantum machine learning
+  - QAOA
+  - OPS-SAT

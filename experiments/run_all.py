@@ -17,7 +17,9 @@ STEPS = [
     ("experiments/physics_check.py", "physics twin validation + environment"),
     ("experiments/classical_baselines.py", "classical detectors, saves live model"),
     ("experiments/twin_replay.py", "end-to-end twin replay + fault injection"),
-    ("experiments/quantum_vs_classical.py", "QSVC / VQC vs classical"),
+    ("experiments/fault_sweep.py", "physics-path detection limits"),
+    ("experiments/quantum_vs_classical.py", "QSVC / VQC vs classical (untuned baseline)"),
+    ("experiments/qml_fair_comparison.py", "tuned QSVC vs tuned classical, full training set"),
     ("experiments/qaoa_scaling.py", "QAOA scheduling study"),
 ]
 

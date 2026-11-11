@@ -50,12 +50,18 @@ def build_problem(passes: list[dict], budget: int, t_anomaly: float | None = Non
     return {"passes": passes, "value": value, "cost": cost, "budget": int(budget), "conflicts": conflicts}
 
 
+def conflict_penalty(prob: dict) -> float:
+    """Penalty P per selected overlapping pair. P exceeds the total value of all passes, so a
+    schedule with any overlap always scores below the empty schedule."""
+    return float(prob["value"].sum()) + 1.0
+
+
 def to_quadratic_program(prob: dict) -> QuadraticProgram:
     n = len(prob["value"])
     qp = QuadraticProgram("downlink_schedule")
     for i in range(n):
         qp.binary_var(f"x{i}")
-    penalty = float(prob["value"].sum()) + 1.0
+    penalty = conflict_penalty(prob)
     qp.maximize(linear={f"x{i}": float(prob["value"][i]) for i in range(n)},
                 quadratic={(f"x{i}", f"x{j}"): -penalty for i, j in prob["conflicts"]})
     qp.linear_constraint({f"x{i}": int(prob["cost"][i]) for i in range(n)}, "<=", prob["budget"], "energy")
@@ -89,6 +95,17 @@ def greedy(prob: dict) -> tuple[np.ndarray, float]:
         if not feasible(prob, x):
             x[i] = 0
     return x, objective(prob, x)
+
+
+def random_search(prob: dict, shots: int = 4096, seed: int = SEED) -> tuple[np.ndarray, float]:
+    """Best feasible schedule among `shots` uniformly random bitstrings: the baseline a sampler
+    has to beat before its best sample means anything."""
+    rng = np.random.default_rng(seed)
+    best_x, best = np.zeros(len(prob["value"]), int), 0.0
+    for x in rng.integers(0, 2, size=(shots, len(prob["value"]))):
+        if feasible(prob, x) and objective(prob, x) > best:
+            best_x, best = x, objective(prob, x)
+    return best_x, best
 
 
 def qubo_stats(prob: dict, reps: int) -> dict:

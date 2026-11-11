@@ -8,6 +8,24 @@
   "exact_qubo_matches_bruteforce": true,
   "max_qubits": 16,
   "mean_p_opt_vs_random": 1.298,
+  "p_opt_vs_random": {
+    "mean": 1.298,
+    "median": 0.89,
+    "min": 0.0,
+    "max": 14.254,
+    "mean_without_max_run": 0.927,
+    "runs_above_random": 16,
+    "runs": 36,
+    "median_by_n_passes": {
+      "4": 1.109,
+      "6": 0.844,
+      "8": 0.812,
+      "10": 0.748
+    }
+  },
+  "random_search_optimal_instances": 12,
+  "random_search_min_ratio": 1.0,
+  "conflict_penalty": "sum of pass values + 1 (per instance; column `penalty` in qaoa_scaling.csv)",
   "random_sampling_hit_prob_at_max_n": 0.9817,
   "shots": 4096
 }

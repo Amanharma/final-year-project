@@ -10,6 +10,7 @@ import time
 import numpy as np
 from qiskit.circuit.library import real_amplitudes, zz_feature_map
 from qiskit.primitives import StatevectorSampler
+from qiskit.quantum_info import Statevector
 from qiskit_machine_learning.algorithms import QSVC, VQC
 from qiskit_machine_learning.kernels import FidelityStatevectorKernel
 from qiskit_machine_learning.optimizers import COBYLA
@@ -45,16 +46,34 @@ def make_qsvc(d: int, C: float = 10.0) -> QSVC:
     return QSVC(quantum_kernel=kernel, C=C, class_weight="balanced")
 
 
-def make_vqc(d: int, maxiter: int = 100, shots: int = 1024, history: list | None = None) -> VQC:
+def statevectors(d: int, X: np.ndarray, reps: int = 2) -> np.ndarray:
+    """Feature-map states |phi(x)> for every row of X, shape (len(X), 2**d)."""
+    fm = feature_map(d, reps)
+    return np.array([Statevector(fm.assign_parameters(x)).data for x in X])
+
+
+def statevector_kernel(d: int, XA: np.ndarray, XB: np.ndarray | None = None, reps: int = 2) -> np.ndarray:
+    """Exact fidelity kernel K[i, j] = |<phi(a_i)|phi(b_j)>|^2 as one matrix product.
+
+    Same quantity as qiskit-machine-learning's FidelityStatevectorKernel (checked in the tests),
+    but vectorised, so the full 1,594-segment training set can be tuned over several bandwidths.
+    """
+    SA = statevectors(d, XA, reps)
+    SB = SA if XB is None else statevectors(d, XB, reps)
+    return np.abs(SA.conj() @ SB.T) ** 2
+
+
+def make_vqc(d: int, maxiter: int = 100, shots: int = 1024, history: list | None = None,
+             seed: int = SEED) -> VQC:
     def cb(_weights, loss):
         if history is not None:
             history.append(float(loss))
 
     ansatz = real_amplitudes(d, reps=3)
     # VQC draws random initial weights unless given some; seed them so runs are reproducible
-    init = np.random.default_rng(SEED).uniform(-np.pi, np.pi, ansatz.num_parameters)
+    init = np.random.default_rng(seed).uniform(-np.pi, np.pi, ansatz.num_parameters)
     return VQC(feature_map=feature_map(d), ansatz=ansatz, optimizer=COBYLA(maxiter=maxiter),
-               sampler=StatevectorSampler(default_shots=shots, seed=SEED), callback=cb,
+               sampler=StatevectorSampler(default_shots=shots, seed=seed), callback=cb,
                initial_point=init)
 
 
