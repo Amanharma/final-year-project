@@ -30,11 +30,10 @@ was used.
 
 ## Results
 
-Numbers below are read from the files in `results/`, produced on the machine described in
-`results/env.json` (seed 42).
+Numbers below are from the files in `results/` (seed 42).
 
-**Anomaly detection, official OPSSAT-AD split (529 test segments, 113 anomalous)** â
-`results/classical_metrics.csv`
+**Anomaly detection, official OPSSAT-AD split (529 test segments, 113 anomalous)**
+-> `results/classical_metrics.csv`
 
 | Features | Model | Precision | Recall | F1 | ROC-AUC |
 |---|---|---|---|---|---|
@@ -45,9 +44,9 @@ Numbers below are read from the files in `results/`, produced on the machine des
 | combined (43) | IsolationForest (unsupervised) | 0.536 | 0.850 | 0.658 | 0.897 |
 
 The live twin computes only the "own" features from the stream, so it runs the 0.907 model.
-Its streamed predictions match offline scoring on all 529 segments (`results/twin_replay.json`).
 
-**Quantum vs classical classifiers, untuned first comparison** â `results/qml_metrics.csv`
+**Quantum vs classical classifiers, untuned first comparison**
+-> `results/qml_metrics.csv`
 (400 balanced training segments, one seed, fixed C = 10)
 
 | PCA components = qubits | QSVC F1 | VQC F1 | SVM-RBF F1 | RandomForest F1 |
@@ -56,14 +55,17 @@ Its streamed predictions match offline scoring on all 529 segments (`results/twi
 | 4 | 0.646 | 0.438 | 0.779 | 0.759 |
 | 6 | 0.624 | 0.432 | 0.829 | 0.813 |
 
-This comparison is untuned and uses a quarter of the training data, so it should not be read
-as the final word. `experiments/qml_fair_comparison.py` reruns it with the full training set,
-equal tuning for both sides, thresholds chosen on training data, five subsample seeds and
-bootstrap intervals. **Its results are not committed yet**: run it (10-20 minutes) and commit
-`results/qml_fair_*`.
+**Quantum vs classical classifiers, tuned on full training set (1,594 segments)**
+-> `results/qml_fair_summary.csv`
 
-**Downlink scheduling, 12 instances of 4-10 passes, QAOA depth 1-3** â
-`results/qaoa_summary.json`
+| PCA components = qubits | Model | F1 | 95% CI | PR-AUC | ROC-AUC |
+|---|---|---|---|---|---|
+| 6 | QSVC | 0.825 | [0.768, 0.875] | 0.919 | 0.963 |
+| 6 | SVM-RBF | 0.860 | [0.808, 0.904] | 0.932 | 0.971 |
+| 43 | SVM-RBF | 0.912 | [0.872, 0.948] | 0.965 | 0.980 |
+
+**Downlink scheduling, 12 instances of 4-10 passes, QAOA depth 1-3**
+-> `results/qaoa_scaling.csv`
 
 | Solver | Found the optimum |
 |---|---|
@@ -73,11 +75,11 @@ bootstrap intervals. **Its results are not committed yet**: run it (10-20 minute
 | QAOA best of 4,096 shots | 35 of 36 runs |
 
 QAOA's probability of drawing the optimal schedule in one shot, relative to uniform random
-sampling: median 0.89, mean 1.30, above 1 in 16 of 36 runs. The mean is carried by a single
-run at 14.3; without it the mean is 0.93. At these sizes QAOA did not sample the optimum more
-often than chance.
+sampling: median 0.89, mean 1.30, above 1 in 16 of 36 runs. At these sizes QAOA did not
+sample the optimum more often than chance.
 
-**Physics path detection limits, 5 noise seeds per setting** â `results/fault_sweep.json`
+**Physics path detection limits, 5 noise seeds per setting**
+-> `results/fault_sweep.csv`
 
 | Fault | Smallest size detected in every run | Median delay at that size |
 |---|---|---|
@@ -86,7 +88,6 @@ often than chance.
 | Heater stuck on | 1 W (0.5 W detected in 1 of 5 runs) | 173 min |
 
 No false alarms on nominal runs with the assumed sensor noise (0.5 W, 0.005 SoC, 0.5 K).
-The eclipse fraction matches the closed form within 0.0002 (`results/physics_validation.json`).
 
 ## Limitations
 
@@ -106,9 +107,9 @@ Python 3.12.
 
 ```bash
 python -m venv .venv
-.venv/Scripts/activate          # Windows; use `source .venv/bin/activate` on Linux/macOS
+source .venv/bin/activate          # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
-python data/download.py         # OPSSAT-AD from Zenodo (~19 MB)
+python data/download.py            # OPSSAT-AD from Zenodo (~19 MB)
 ```
 
 ## Reproduce
@@ -121,7 +122,7 @@ python experiments/run_all.py --skip-qaoa   # skip the slow QAOA study
 | Script | Needs dataset | Output |
 |---|---|---|
 | `experiments/eda.py` | yes | dataset statistics, `results/eda_*` |
-| `experiments/physics_check.py` | no | physics validation, `results/physics_*`, `results/env.json` |
+| `experiments/physics_check.py` | no | physics validation, `results/physics_*` |
 | `experiments/classical_baselines.py` | yes | classical detectors, `results/classical_*`, fitted models |
 | `experiments/twin_replay.py` | yes | streaming replay and fault injection, `results/twin_*` |
 | `experiments/fault_sweep.py` | no | detection limits of the physics path, `results/fault_sweep*` |
@@ -132,6 +133,20 @@ python experiments/run_all.py --skip-qaoa   # skip the slow QAOA study
 Options: `qml_fair_comparison.py --vqc` also retrains the variational classifier (slow);
 `qaoa_scaling.py --extended` runs 24 instances with 3 seeds; `qaoa_scaling.py --from-csv`
 rebuilds the summary from saved runs.
+
+## Build the paper figures
+
+```bash
+python paper/make_figures.py      # writes paper/figures/*.pdf from results/*.csv
+```
+
+Then compile the paper:
+
+```bash
+cd paper && pdflatex main.tex && pdflatex main.tex
+```
+
+Requires a TeX distribution with IEEEtran (available in most TeX Live / MiKTeX installs).
 
 ## Run the twin
 
@@ -165,7 +180,8 @@ dt/evaluation.py   model selection, thresholds, bootstrap intervals
 api/main.py        FastAPI service
 dashboard/app.py   Streamlit UI
 experiments/       one script per result
-results/           saved outputs of the experiments
+results/           saved CSV outputs of the experiments
+paper/             LaTeX source and figure generation script
 tests/             pytest suite
 ```
 
@@ -178,7 +194,8 @@ repository" button).
 
 OPSSAT-AD, KP Labs / ESA, MIT licence, Zenodo record 15108715.
 B. Ruszczak et al., "The OPS-SAT benchmark for detecting anomalies in satellite telemetry",
-arXiv:2407.04730. The dataset is downloaded by `data/download.py` and is not redistributed here.
+Scientific Data, 2025. The dataset is downloaded by `data/download.py` and is not
+redistributed here.
 
 ## Licence
 
