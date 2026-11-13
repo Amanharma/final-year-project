@@ -5,8 +5,13 @@ data/raw/
 *.db
 .pytest_cache/
 results/models/
+results/*.png
+results/*.json
+results/test_report_*.txt
 paper/*.aux
 paper/*.log
 paper/*.out
-paper/main.pdf
+paper/*.pdf
+paper/IEEEtran.cls
+paper/figures/*.pdf
 paper-final.zip
