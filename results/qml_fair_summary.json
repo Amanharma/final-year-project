@@ -1,0 +1,92 @@
+{
+  "n_train_full": 1594,
+  "n_test": 529,
+  "test_anomalies": 113,
+  "n_features": 43,
+  "balanced_seeds": [
+    0,
+    1,
+    2,
+    3,
+    4
+  ],
+  "bootstrap_draws": 2000,
+  "grids": {
+    "alpha": [
+      0.1,
+      0.25,
+      0.5,
+      1.0
+    ],
+    "C": [
+      0.1,
+      1.0,
+      10.0,
+      100.0
+    ],
+    "gamma": [
+      "scale",
+      0.01,
+      0.1,
+      1.0,
+      10.0
+    ]
+  },
+  "pca_cumulative_explained_variance": {
+    "2": 0.3532,
+    "4": 0.5395,
+    "6": 0.6494
+  },
+  "best_quantum_full_tuned": {
+    "train_set": "full",
+    "dims": "6",
+    "model": "QSVC",
+    "tuned": true,
+    "f1_mean": 0.8193832599118943,
+    "f1_std": NaN,
+    "f1_oofthr_mean": 0.8246445497630331,
+    "f1_oofthr_std": NaN,
+    "precision_oofthr_mean": 0.8877551020408163,
+    "precision_oofthr_std": NaN,
+    "recall_oofthr_mean": 0.7699115044247787,
+    "recall_oofthr_std": NaN,
+    "roc_auc_mean": 0.9629212049012935,
+    "roc_auc_std": NaN,
+    "pr_auc_mean": 0.9187477280496242,
+    "pr_auc_std": NaN,
+    "runs": 1,
+    "n_train": 1594,
+    "f1_oofthr_ci_lo": 0.7675675675675676,
+    "f1_oofthr_ci_hi": 0.8744724025974026
+  },
+  "best_classical_same_features_full_tuned": {
+    "train_set": "full",
+    "dims": "6",
+    "model": "RandomForest",
+    "tuned": false,
+    "f1_mean": 0.8421052631578947,
+    "f1_std": NaN,
+    "f1_oofthr_mean": 0.8384279475982532,
+    "f1_oofthr_std": NaN,
+    "precision_oofthr_mean": 0.8275862068965517,
+    "precision_oofthr_std": NaN,
+    "recall_oofthr_mean": 0.8495575221238938,
+    "recall_oofthr_std": NaN,
+    "roc_auc_mean": 0.974217154526889,
+    "roc_auc_std": NaN,
+    "pr_auc_mean": 0.9354537579283719,
+    "pr_auc_std": NaN,
+    "runs": 1,
+    "n_train": 1594,
+    "f1_oofthr_ci_lo": 0.7830086136177196,
+    "f1_oofthr_ci_hi": 0.8869583409132253
+  },
+  "svm_f1_oofthr_decomposition": {
+    "all_features_full": 0.9116,
+    "all_features_balanced400": 0.8727,
+    "pca6_full": 0.8598,
+    "pca6_balanced400": 0.7968
+  },
+  "wall_s": 1105.2,
+  "seed": 42
+}
