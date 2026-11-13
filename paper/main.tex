@@ -1,655 +1,623 @@
-% Hybrid Quantum-Classical Digital Twin for LEO CubeSat Health Monitoring
-% Aman Sharma — B.Tech CSE (AI/ML), IILM University, 2026-27
-\documentclass[10pt,twocolumn]{article}
-
-\usepackage[a4paper,top=20mm,bottom=20mm,left=16mm,right=16mm,
-            columnsep=6mm]{geometry}
+% Compile: pdflatex main && pdflatex main   (IEEEtran class; figures in ./figures)
+% Figures are produced by:  python paper/make_figures.py
+\documentclass[conference]{IEEEtran}
+\IEEEoverridecommandlockouts
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{cite}
 \usepackage{amsmath,amssymb}
 \usepackage{graphicx}
 \usepackage{booktabs}
-\usepackage{microtype}
 \usepackage{url}
-\usepackage[colorlinks=true,linkcolor=black,citecolor=black,urlcolor=blue]{hyperref}
-\usepackage{xcolor}
-\usepackage{caption}
-\usepackage{subcaption}
-\usepackage{algorithm}
-\usepackage{algorithmic}
-\captionsetup{font=small,labelfont=bf}
-
-\renewcommand{\abstractname}{Abstract}
-
-% ---------------------------------------------------------------
-\title{\textbf{Hybrid Quantum-Classical Digital Twin for LEO CubeSat\\
-Health Monitoring and Ground-Station Scheduling}}
-
-\author{%
-  Aman Sharma\\
-  Department of Computer Science and Engineering (AI/ML)\\
-  IILM University, Greater Noida, India\\
-  \texttt{amnsharma786@gmail.com}
-}
-\date{November 2026}
-% ---------------------------------------------------------------
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning}
+\graphicspath{{figures/}}
 
 \begin{document}
+
+\title{Do Quantum Methods Help a CubeSat Digital Twin?\\
+A Benchmark on OPS-SAT Telemetry and Downlink Scheduling}
+
+% For double-blind review, replace this block with:  \author{\IEEEauthorblockN{Anonymous Author(s)}}
+% and replace the repository link in Section I with an anonymised one.
+\author{\IEEEauthorblockN{Aman Sharma}
+\IEEEauthorblockA{\textit{Department of Computer Science and Engineering (AI \& ML)} \\
+\textit{IILM University}, Greater Noida, India \\
+amnsharma786@gmail.com}}
+
 \maketitle
 
-% ============================================================
 \begin{abstract}
-We build a software digital twin for a LEO CubeSat and evaluate two quantum
-computing methods against classical baselines on two operations tasks.
-For anomaly detection on the ESA OPS-SAT-AD benchmark (1{,}594 training and
-529 test telemetry segments, 113 test anomalies), a tuned quantum-kernel SVM
-(QSVC) on 6 PCA components achieves F1\,=\,0.825 (95\% bootstrap CI
-0.768--0.875), narrowing the gap to the classical RBF-kernel SVM on the
-\emph{same} 6-component input from $\approx$18 points (untuned) to 3.5
-points (tuned, full training set).  The all-features SVM ceiling is
-F1\,=\,0.912; the remaining 8.7-point gap is consistent with the 35\% of
-variance discarded by PCA at $d{=}6$.  For downlink scheduling, QAOA
-(depth 1--3) finds the optimal schedule in 35 of 36 instances but does not
-reliably sample it more often than uniform random search at current circuit
-sizes (median P(opt)/P(random)\,=\,0.89).  A model-based physics path
-detects a 5\% solar-panel degradation with zero false alarms on nominal
-runs.  All circuits are simulated with Qiskit; no quantum hardware was used.
-Code and reproducible results are released at
-\url{https://github.com/Amanharma/final-year-project}.
+A CubeSat in low Earth orbit reaches the ground only in short station passes, so its operators
+have to judge its health from limited telemetry and choose which passes to spend on downlink.
+We built a digital-twin testbed for such a satellite. It combines a physics model of orbit,
+eclipse, battery and temperature with anomaly detection on 2,123 labelled telemetry segments
+from ESA's OPS-SAT and a scheduler that picks passes within the energy the battery can spare.
+We used it to test whether quantum methods help with either task, running each one against a
+classical method on the same inputs. An RBF-kernel SVM detects anomalies with F1 = 0.919 on the
+official 529-segment test set. With equal tuning and the full training set, a quantum-kernel
+SVM on six PCA components reaches F1 = 0.825 (95\% CI 0.768--0.875), up from 0.624 in an
+untuned first comparison, against 0.860 for a classical SVM on the same six components. The
+quantum kernel trails on identical inputs at every dimension we tested, and its best setting is
+the narrowest bandwidth in the grid, where it behaves most like a classical Gaussian kernel. A
+variational quantum classifier did not train. In scheduling, QAOA's best sample is optimal in 35 of 36 runs, but uniform random search
+with the same number of samples is optimal in all of them, and QAOA draws the optimal plan
+less often per shot than random guessing in 20 of 36 runs. At the sizes a laptop can
+simulate, the quantum methods at best matched the classical ones, at far higher run time. Code and results are public.
 \end{abstract}
 
-% ============================================================
+\begin{IEEEkeywords}
+digital twin, satellite telemetry, anomaly detection, quantum machine learning, QAOA, QUBO, OPS-SAT
+\end{IEEEkeywords}
+
 \section{Introduction}
+At 515\,km a satellite circles the Earth every 94.8\,min, and it can transmit only while a
+ground station is above the horizon, usually for a few minutes at a time. Faults in the power
+or thermal subsystems have to be spotted from whatever telemetry comes down in those windows,
+and the windows themselves have to be rationed against the battery. A digital
+twin~\cite{grieves2017,glaessgen2012}, a model kept in step with the real vehicle, gives one
+place to do both.
 
-CubeSats form an increasingly large share of the LEO constellation.  Their
-limited onboard compute makes automated, ground-side health monitoring
-essential.  Digital twins---software replicas that mirror a physical
-system---allow operators to compare expected and observed behaviour, flag
-residuals, and schedule ground-station contacts without manual intervention.
+Quantum computing has been proposed for both halves of this problem: quantum kernels and
+variational circuits for classification~\cite{havlicek2019,schuld2019}, and the Quantum
+Approximate Optimisation Algorithm (QAOA)~\cite{farhi2014} for scheduling. Most such proposals
+are evaluated alone or on synthetic data. We tested them inside a working twin, on real
+satellite telemetry, with every quantum method run against a classical method on the same
+inputs. Our contributions are:
+\begin{itemize}
+\item an open digital-twin testbed for a CubeSat, with a physics model, a streaming anomaly
+detector trained on the OPSSAT-AD benchmark~\cite{ruszczak2025}, an energy-aware downlink
+scheduler, a REST service and a dashboard;
+\item a characterisation of the twin: agreement of the physics model with closed-form
+results, agreement of streamed and offline scoring, and the smallest fault of each type that
+the physics checks detect;
+\item a like-for-like comparison of a quantum-kernel SVM and a variational classifier with
+classical models on identical features and the official test split, with equal tuning,
+thresholds chosen on training data and bootstrap intervals, which shows how much of an
+apparent quantum deficit comes from the evaluation protocol;
+\item a QAOA scheduling study with exact, greedy and random-search baselines, showing that
+``QAOA found the optimum'' carries no information at these sizes unless it is compared with
+random sampling.
+\end{itemize}
+The twin, the experiments and all result files are available at
+\url{https://github.com/Amanharma/final-year-project}.
 
-Quantum machine learning (QML) algorithms have been proposed as a path to
-improved pattern recognition in high-dimensional sensor data
-\cite{Biamonte2017,Havlicek2019}.  Whether they provide a practical advantage
-over classical methods on near-term devices remains an open question.  The
-most common obstacle to a definitive answer is methodological: quantum
-classifiers are frequently benchmarked with less training data, untuned
-hyperparameters, or test-set threshold selection, all of which
-systematically disadvantage the quantum side.
-
-For scheduling, the downlink pass-selection problem---choosing which of a set
-of upcoming ground-station contacts to use given power and bandwidth
-constraints---is naturally combinatorial and has been proposed as a target
-for quantum optimisation \cite{Farhi2014}.  Small instances can already be
-run on simulated quantum circuits, making them tractable for empirical study.
-
-This paper makes three contributions.
-\begin{enumerate}
-  \item \textbf{Digital twin.}  A complete simulation environment for a
-        CubeSat in LEO, covering orbit/eclipse modelling, power and thermal
-        physics, telemetry-stream ingestion, anomaly detection, downlink
-        scheduling, and a FastAPI/Streamlit service layer.
-  \item \textbf{Fair QML comparison.}  A tuned, equal-resource comparison
-        of a quantum-kernel SVM (QSVC) and a classical RBF-kernel SVM on
-        the ESA OPS-SAT anomaly detection benchmark, with bootstrap
-        confidence intervals.
-  \item \textbf{QAOA scheduling.}  An empirical study of QAOA versus exact,
-        greedy and random baselines on downlink-pass scheduling encoded as a
-        QUBO problem.
-\end{enumerate}
-
-% ============================================================
 \section{Related Work}
+\textit{Digital twins.} Grieves and Vickers~\cite{grieves2017} define the digital twin as a
+virtual counterpart linked to a physical product through its life, and Glaessgen and
+Stargel~\cite{glaessgen2012} set out the concept for aerospace vehicles. Our system is a twin
+in the testbed sense: the model is synchronised with recorded and simulated telemetry, not
+with a satellite in flight.
 
-\paragraph{Digital twins for spacecraft.}
-Spacecraft digital twins typically combine orbital mechanics with onboard
-subsystem models to support health monitoring and contingency analysis
-\cite{Grieves2017}.  Most operational deployments use classical statistical
-anomaly detectors; quantum components have not been reported in operational
-systems to our knowledge.
+\textit{Telemetry anomaly detection.} Hundman et al.~\cite{hundman2018} detected anomalies in
+NASA's SMAP and MSL telemetry by forecasting each channel with an LSTM and thresholding the
+errors. Kotowski et al.~\cite{kotowski2024} released a large benchmark from three ESA
+missions, and Ruszczak et al.~\cite{ruszczak2025} released OPSSAT-AD, 2,123 labelled
+single-channel segments from ESA's OPS-SAT with a fixed train/test split and baseline results.
+We use OPSSAT-AD and its official split, so our classical numbers can be set beside the
+published baselines.
 
-\paragraph{Quantum kernel classifiers.}
-Havl{\v i}{\v c}ek et al.\ \cite{Havlicek2019} introduced the ZZ feature
-map and demonstrated that the resulting kernel is classically hard to
-estimate for certain circuits.  Several follow-up studies have identified
-conditions under which quantum kernels match or slightly exceed classical
-kernels on structured synthetic data, while results on real-world datasets
-are mixed \cite{SchuldKern2021}.
+\textit{Quantum classifiers.} Havl\'{\i}\v{c}ek et al.~\cite{havlicek2019} introduced the ZZ
+feature map and quantum-kernel classifiers, and Schuld and Killoran~\cite{schuld2019}
+described them as kernel methods in feature Hilbert space. Later work tempers the early
+optimism. Huang et al.~\cite{huang2021} show that with enough data classical models can match
+quantum kernels unless the data has specific structure, Thanasilp et
+al.~\cite{thanasilp2024} show that fidelity-kernel values concentrate as qubits are added,
+and Bowles et al.~\cite{bowles2024} find that out-of-the-box classical models usually beat
+quantum ones on common benchmarks. Variational circuits~\cite{cerezo2021} can also suffer
+from vanishing gradients~\cite{mcclean2018}. Our results on real telemetry agree with this
+more cautious literature.
 
-\paragraph{QAOA and combinatorial optimisation.}
-Since the original proposal \cite{Farhi2014}, QAOA has been applied to
-scheduling, routing, and portfolio optimisation at small scales.  Empirical
-studies on hardware \cite{Shaydulin2023} and noiseless simulators
-\cite{Guerreschi2019} generally find that QAOA at depth $p \lesssim 3$ does
-not reliably outperform classical heuristics on problems small enough to
-simulate.
+\textit{Quantum scheduling.} QAOA~\cite{farhi2014} targets problems written as Ising
+Hamiltonians, and Lucas~\cite{lucas2014} shows how to express assignment and scheduling
+constraints as QUBO penalties. Hadfield et al.~\cite{hadfield2019} generalise the mixer so
+that constraints are respected without penalties. For satellites, Stollenwerk et
+al.~\cite{stollenwerk2020} studied image-acquisition planning on a quantum annealer and
+Rainjonneau et al.~\cite{rainjonneau2023} applied hybrid quantum algorithms to Earth-observation
+mission planning. We study the narrower downlink-selection problem and add a random-sampling
+baseline, which those small-instance studies often lack.
 
-\paragraph{Satellite anomaly detection.}
-The OPS-SAT-AD benchmark \cite{Ruszczak2024} is the primary reproducible
-dataset used here.  Published results on the benchmark use classical
-supervised and unsupervised detectors; this work is the first to compare
-quantum kernel methods on this dataset.
-
-% ============================================================
 \section{System Design}
-\label{sec:design}
+Fig.~\ref{fig:arch} shows the twin. Telemetry segments are replayed in time order, as they
+would arrive over a downlink. When a segment closes, the twin computes its features and scores
+it. Each channel keeps an exponentially weighted risk (weight 0.3 on the newest segment) and
+raises an alert at 0.5. Separately, measured solar power, battery state of charge (SoC) and
+temperature are compared with the physics model at the same point in the orbit, and residuals
+larger than 3\,W, 0.05 SoC or 3\,K raise an alert. The scheduler takes pass windows from orbit
+geometry and a transmit budget from the SoC: with a 10\,W transmitter, a 40\,Wh battery and a
+70\% charge reserve, the budget is 48, 24 and 0 transmit-minutes at 90, 80 and 70\% charge.
+Events are stored in SQLite. A FastAPI service exposes the twin and a Streamlit dashboard
+reads from it.
 
-\subsection{Orbit and Eclipse Model}
+\begin{figure}[t]
+\centering
+\begin{tikzpicture}[font=\scriptsize, node distance=3.5mm and 3mm,
+  box/.style={draw, rounded corners=1pt, align=center, minimum height=7mm, inner sep=2pt},
+  arr/.style={-{Stealth[length=1.6mm]}, semithick}]
+\node[box, text width=36mm] (ops) {OPS-SAT telemetry\\9 channels, 2,123 segments};
+\node[box, text width=36mm, right=of ops] (phy) {Physics model\\orbit, eclipse, power, thermal};
+\node[box, text width=36mm, below=of ops] (ing) {Ingestion\\normalise, features, replay};
+\node[box, text width=36mm, below=of phy] (twin) {SatelliteTwin\\channel risk, residual alerts};
+\node[box, text width=23mm, below=of ing, xshift=-6.5mm] (cml) {Classical ML\\IF, RF, SVM};
+\node[box, text width=23mm, right=of cml] (qml) {Quantum ML\\QSVC, VQC};
+\node[box, text width=23mm, right=of qml] (sch) {Scheduler\\QAOA, exact, greedy};
+\node[box, text width=75mm, below=of qml] (api) {FastAPI service \quad$\rightarrow$\quad Streamlit dashboard};
+\draw[arr] (ops) -- (ing);
+\draw[arr] (phy) -- node[right]{expected values} (twin);
+\draw[arr] (ing) -- (twin);
+\draw[arr] (ing.south) -- (cml.north -| ing.south);
+\draw[arr] (ing.south east) -- (qml.north);
+\draw[arr] (twin.south) -- node[right, pos=0.4]{SoC, passes} (sch.north -| twin.south);
+\draw[arr] (cml.south) -- (cml.south |- api.north);
+\draw[arr] (qml) -- (api);
+\draw[arr] (sch.south) -- (sch.south |- api.north);
+\end{tikzpicture}
+\caption{Architecture of the digital-twin testbed.}
+\label{fig:arch}
+\end{figure}
 
-A circular LEO orbit at altitude $h = 550\,\text{km}$ gives an orbital
-radius $r = R_\oplus + h$ and angular velocity
-$\omega = \sqrt{GM_\oplus / r^3}$.
-Eclipse is modelled with a cylindrical Earth shadow: a satellite position
-$\mathbf{r}(t)$ is in eclipse when
-$|\mathbf{r} - (\mathbf{r}\cdot\hat{s})\hat{s}| < R_\oplus$ and
-$\mathbf{r}\cdot\hat{s} < 0$,
-where $\hat{s}$ is the unit vector toward the Sun.  The eclipse fraction
-computed by the model matches the closed-form expression to within 0.0002.
-
-\subsection{Power and Thermal Model}
-
-The solar-panel power output is
+\section{Methods}
+\subsection{Physics Model}
+The orbit is circular at $h = 515$\,km with period $T = 2\pi\sqrt{a^3/\mu}$, $a = R_E + h$ and
+$R_E = 6371$\,km. The satellite is in eclipse when it sits inside a cylindrical Earth
+shadow~\cite{vallado2013}. We checked the simulated eclipse fraction against the closed form
 \begin{equation}
-P_\text{solar}(t) = \eta\,A\,G_\odot\,\cos\theta(t)\,\mathbf{1}_\text{sun}(t),
-\label{eq:solar}
+f_{\mathrm{ecl}} = \frac{1}{\pi}\arccos\!\left(\frac{\sqrt{h^{2}+2R_E h}}{a\cos\beta}\right),
+\quad |\beta| < \beta^{*},
+\label{eq:ecl}
 \end{equation}
-where $\eta = 0.28$ is panel efficiency, $A$ is panel area,
-$G_\odot = 1361\,\text{W\,m}^{-2}$, $\theta(t)$ is the angle between the
-panel normal and the Sun, and $\mathbf{1}_\text{sun}$ is the in-eclipse
-indicator.  Battery state of charge evolves as
+where $\beta$ is the angle between the orbit plane and the Sun and
+$\beta^{*} = \arcsin(R_E/a) = 67.7^{\circ}$; above $\beta^{*}$ there is no eclipse and
+$f_{\mathrm{ecl}} = 0$. In sunlight the panels deliver $S A_{\mathrm{pan}} \eta = 34.3$\,W
+($S = 1361$\,W/m$^2$, $A_{\mathrm{pan}} = 0.09$\,m$^2$, $\eta = 0.28$). The battery integrates
+this minus a 12\,W load into 40\,Wh of capacity. Temperature follows a single-node
+balance~\cite{gilmore2002}
 \begin{equation}
-\text{SoC}(t + \Delta t) = \text{SoC}(t) + \frac{(P_\text{solar} - P_\text{load})\Delta t}{E_\text{cap}},
-\label{eq:soc}
-\end{equation}
-clipped to $[0, 1]$.  Temperature follows a single-node model,
-\begin{equation}
-mC_p\,\dot{T} = \alpha_s A_s G_\odot \mathbf{1}_\text{sun} + P_\text{heater} - \epsilon\sigma A_r T^4,
+m c_p \frac{dT}{dt} = \alpha_s S A_p\,\mathbf{1}_{\mathrm{sun}} + \varepsilon E_{\mathrm{IR}} A_p
++ Q_{\mathrm{int}} - \varepsilon \sigma A T^{4},
 \label{eq:thermal}
 \end{equation}
-with an absorptivity--emissivity pair appropriate for a 3U CubeSat.
-Faults are injected as step changes at a specified orbit: panel degradation
-scales $\eta$, battery fade reduces $E_\text{cap}$, and a stuck heater adds
-a fixed $P_\text{heater} > 0$.
+with radiating area $A = 0.14$\,m$^2$, projected area $A_p = A/4$, Earth infrared flux
+$E_{\mathrm{IR}} = 237$\,W/m$^2$ and internal dissipation $Q_{\mathrm{int}}$ of half the load.
+Albedo is neglected. Faults enter as step changes in panel output, battery capacity or heater
+power. Pass windows for four stations (ESOC Darmstadt, Kiruna, Svalbard, ISTRAC Bengaluru)
+come from a $97.4^{\circ}$ two-body orbit over a rotating spherical Earth with a $10^{\circ}$
+elevation mask.
 
-\subsection{Telemetry Ingestion and Feature Extraction}
+\subsection{Anomaly Detection}
+Each OPSSAT-AD segment belongs to one channel and carries one label. Channel magnitudes differ
+by five orders, so each channel is standardised with statistics from the training split only.
+A segment is described by 43 features: the 18 published with the benchmark (heavy-tailed ones
+on a signed-log scale), 16 shape and spectral features of our own computed on the standardised
+signal, and 9 channel indicators. The classical models, from
+scikit-learn~\cite{pedregosa2011}, are an Isolation Forest~\cite{liu2008} of 300 trees fitted
+on nominal training segments only, a Random Forest~\cite{breiman2001} of 300 trees, and an
+RBF-kernel SVM~\cite{cortes1995} with $C = 10$, $\gamma$ set by the \texttt{scale} rule and
+balanced class weights. These settings were fixed in advance and not tuned. All runs use
+seed 42.
 
-OPS-SAT segments are replayed in timestamp order.  When a segment closes,
-43 features are extracted: 27 published statistics \cite{Ruszczak2024}
-(channel mean, standard deviation, min, max, range, skewness, kurtosis,
-percentiles, autocorrelation and crossing-rate variants), plus 16 own
-time-series features (mean absolute deviation, inter-quartile range,
-linear trend coefficient, spectral entropy, and 12 derived ratios).
-Features are standardised to zero mean and unit variance per training set.
+\subsection{Quantum Classifiers}
+For the quantum models the 43 features are standardised, reduced by PCA to
+$d \in \{2,4,6\}$ components with one qubit per component, and scaled to $[0,\pi]$; all three
+steps are fitted on the training subsample. The quantum-kernel SVM (QSVC) uses the fidelity
+kernel $K(\mathbf{x},\mathbf{x}') = |\langle\phi(\mathbf{x})|\phi(\mathbf{x}')\rangle|^{2}$ of
+a two-repetition ZZ feature map with linear entanglement~\cite{havlicek2019}, computed
+exactly from statevectors, with $C = 10$, on a class-balanced subsample of 400 training
+segments. The variational classifier (VQC) adds a three-repetition RealAmplitudes ansatz
+(8, 16 and 24 parameters) trained with COBYLA~\cite{powell1994} for 100 iterations on a
+1,024-shot sampler, using 200 of those segments and seeded initial weights. The classical SVM
+and Random Forest are trained on the same PCA features and the same 400 segments. Circuits are
+built and simulated with Qiskit~\cite{qiskit2024}.
 
-\subsection{Anomaly Detection Pipeline}
+This first comparison is untuned and uses a quarter of the training data, so we repeated it
+under equal conditions. Every model is trained on the full 1,594 training segments, and
+separately on five class-balanced 400-segment subsamples with different seeds. Both SVMs are
+grid-searched by 5-fold out-of-fold PR-AUC on the training data: the QSVC over
+$C \in \{0.1, 1, 10, 100\}$ and a bandwidth factor $\alpha \in \{0.1, 0.25, 0.5, 1\}$ that
+scales the features to $[0, \alpha\pi]$, the classical SVM over the same $C$ values and
+$\gamma \in \{\texttt{scale}, 0.01, 0.1, 1, 10\}$. The Random Forest keeps its defaults. The
+decision threshold of each model is the one that maximises out-of-fold F1 on the training
+data. The test split is scored once, with 95\% percentile-bootstrap intervals from 2,000
+resamples of the test segments. The quantum kernel is computed exactly from statevectors as a
+single matrix product, which agrees with the library implementation to $10^{-14}$.
 
-Classical detectors trained on the training set: Isolation Forest
-(unsupervised), Random Forest, and RBF-kernel SVM.
-Quantum detectors: a ZZ-feature-map QSVC and a real-amplitudes VQC.
-Both quantum models compress the 43 features to $d$ dimensions via PCA,
-then rescale to $[0, \pi]$ so that the quantum phase angles span their
-natural range.  For the QSVC the quantum kernel is
+\subsection{Scheduling as a QUBO}
+Let $x_p \in \{0,1\}$ select pass $p$, with data volume $v_p$ (rate times duration), priority
+$w_p = 1 + 2e^{-\Delta t_p/6\,\mathrm{h}}$ for passes that start $\Delta t_p$ after an
+anomaly, and transmit time $c_p$ in whole minutes. The scheduler solves
 \begin{equation}
-k(x,x') = |\langle 0^d | U^\dagger_\phi(x)\, U_\phi(x') | 0^d \rangle|^2,
-\label{eq:kernel}
-\end{equation}
-where $U_\phi$ is a ZZ feature map of depth 2.  Decision thresholds are
-chosen to maximise F1 on the training fold (not the test set).
-
-\subsection{QUBO Downlink Scheduler}
-
-Let $x_i \in \{0,1\}$ indicate whether pass $i$ is selected.  The scheduling
-objective is
-\begin{align}
-\max\; \sum_i v_i x_i &- \lambda_c \sum_{(i,j)\in\mathcal{C}} x_i x_j \notag\\
-  &- \lambda_b \!\left(\textstyle\sum_i e_i x_i - E_\text{budget}\right)^2_{\!+},
+\max_{\mathbf{x}} \sum_{p} w_p v_p x_p - P\!\!\sum_{(p,q)\in\mathcal{O}}\!\! x_p x_q
+\quad \text{s.t.} \quad \sum_{p} c_p x_p \le B,
 \label{eq:qubo}
-\end{align}
-where $v_i$ is the data volume of pass $i$, $\mathcal{C}$ is the set of
-conflicting (overlapping) pass pairs, $e_i$ is the transmitter energy, and
-$(\cdot)_+$ denotes the positive part.  The penalty $\lambda_c$ is set to
-$\sum_i v_i + 1$ per instance.  Negating \eqref{eq:qubo} gives a standard
-QUBO form $\min\, \mathbf{x}^\top Q\,\mathbf{x}$ solvable by QAOA.
+\end{equation}
+where $\mathcal{O}$ holds the pairs of overlapping passes, since the satellite has one
+transmitter, and $B$ is the transmit budget. The penalty is $P = 1 + \sum_p w_p v_p$, so any
+schedule with an overlap scores below the empty schedule. Qiskit converts the inequality to an
+equality with 4--6 binary slack variables and adds it as a quadratic penalty, which gives a
+QUBO on 8--16 qubits. We compare QAOA at depths $p = 1,2,3$ (COBYLA, 200 iterations,
+4,096 shots, seeded initial angles) with the exact NumPy eigensolver on the same QUBO, brute
+force over all $2^{n}$ schedules, a greedy rule that takes passes by value per
+transmit-minute, and uniform random search that keeps the best feasible of 4,096 random
+schedules. A QAOA sample counts as a schedule only through its $n$ pass bits; a returned
+schedule that violates a constraint is scored as zero.
 
-% ============================================================
 \section{Experimental Setup}
+OPSSAT-AD~\cite{ruszczak2025} holds 303,493 samples recorded between 2022-01-04 and
+2022-06-02, grouped into 2,123 labelled segments over 9 channels; 434 segments (20.4\%) are
+anomalous. The official split has 1,594 training and 529 test segments, 113 of them
+anomalous. The test split is used only for final scores.
 
-All experiments fix random seed 42.  The OPS-SAT-AD dataset
-\cite{Ruszczak2024} is downloaded from Zenodo record 15108715;
-1{,}594 segments are used for training and 529 for testing (official split),
-with 113 anomalous test segments (21.4\% anomaly rate).  Quantum circuits are
-simulated with \texttt{qiskit-aer} 0.18 statevector primitives; no hardware
-was used.  All timings are measured on a single CPU core.
+The physics checks run on simulated telemetry over 10 orbits at a 10\,s step, with assumed
+Gaussian sensor noise of 0.5\,W, 0.005 SoC and 0.5\,K ($1\sigma$). For detection limits, each
+fault type is injected at orbit 4 at five magnitudes with five noise seeds; a run counts as
+detected when any residual crosses its threshold after the fault starts.
 
-\subsection{Quantum Circuit Statistics}
+Scheduling instances are windows of $n \in \{4,6,8,10\}$ consecutive passes, three per size,
+taken from a 24-hour list of 26 passes with 11 overlapping pairs. The anomaly is placed at the
+window start and the budget is half the transmit-minutes needed to take every pass
+(11--35\,min), so the budget constraint always binds. Each instance has 1--5 overlapping pairs.
 
-Table~\ref{tab:circuits} shows the circuit complexity for each qubit count.
-The ZZ feature-map depth grows quadratically in $d$ because every qubit pair
-gets an entangling gate.  The VQC uses a hardware-efficient real-amplitudes
-ansatz with one layer of $Ry$ rotations and one layer of CNOT ladders.
+Everything ran on a laptop with an 8-thread AMD CPU under Windows~11, without GPU or quantum
+hardware, using Python 3.12.0, Qiskit 2.6.0, qiskit-machine-learning 0.9.1,
+qiskit-optimization 0.7.0 and scikit-learn 1.9.1. Circuits were simulated with Qiskit's
+statevector primitives, without hardware noise.
 
-\begin{table}[h]
-\centering
-\small
-\caption{Quantum circuit statistics.}
-\label{tab:circuits}
-\begin{tabular}{@{}ccccc@{}}
-\toprule
-$d$ & FM depth & VQC depth & VQC params & CX count \\
-\midrule
-2 & 10 & 17 & 8  & 7  \\
-4 & 19 & 30 & 16 & 21 \\
-6 & 25 & 38 & 24 & 35 \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-\subsection{Kernel Computation Scaling}
-
-The QSVC kernel matrix must be evaluated pairwise, giving $O(n^2)$ circuit
-evaluations.  Table~\ref{tab:kernel} shows measured training times.
-
-\begin{table}[h]
-\centering
-\small
-\caption{QSVC kernel computation time vs.\ training-set size ($d=4$).}
-\label{tab:kernel}
-\begin{tabular}{@{}ccc@{}}
-\toprule
-$n_\text{train}$ & Kernel entries & Time (s) \\
-\midrule
- 50  &  2{,}500   & 0.16 \\
-100  &  10{,}000  & 0.35 \\
-200  &  40{,}000  & 1.14 \\
-400  & 160{,}000  & 3.41 \\
-800  & 640{,}000  & 9.54 \\
-1594 & 2{,}540{,}836 & 32.7 \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-Kernel computation on the full training set (1{,}594 samples) takes 32.7\,s
-per fit, versus under 0.1\,s for the classical SVM.  At $n=1{,}594$ this is
-already the dominant cost of the QSVC training loop.
-
-% ============================================================
 \section{Results}
+\subsection{Physics Model and Twin}
+The orbital period is 94.78\,min. The simulated eclipse fraction is within 0.0002 of
+\eqref{eq:ecl} for $\beta$ from $0^{\circ}$ to $60^{\circ}$ (0.376 at $\beta = 0$), and both
+are zero at $70^{\circ}$ and $75^{\circ}$. A 50\% loss of panel output lowers the minimum SoC
+from 0.826 to 0.598. Replaying the 529 test segments (78,315 samples) through the twin gave
+the same prediction as offline scoring of the same model for every segment, at 9,945
+samples/s and a median scoring time of 10.5\,ms per segment.
 
-\subsection{Classical Baselines}
+Table~\ref{tab:faults} gives the detection limits of the physics checks. Nominal runs raised
+no alarms. Panel loss of 10\% or more is caught within two time steps through the solar-power
+residual; a 5\% loss stays under the 3\,W threshold and is caught later through the SoC. A
+battery fade shows only in eclipse, when the charge residual crosses its threshold
+(Fig.~\ref{fig:resid}); fades of 10\% or less are never detected. A stuck heater is found
+through slow thermal drift, and 0.5\,W is at the edge of what the 3\,K threshold resolves.
+Small faults are therefore missed or found late, a consequence of the thresholds, which sit
+six to ten noise standard deviations from zero.
 
-Table~\ref{tab:classical} reports precision, recall, F1 and ROC-AUC on the
-official test split.  The best single model is SVM-RBF on the published
-27-feature set (F1\,=\,0.919, ROC-AUC\,=\,0.986).  The combined 43-feature
-set matches this for SVM-RBF and slightly improves Random Forest (RF) to
-0.913 F1.  Isolation Forest, being unsupervised, achieves only F1\,=\,0.658
-but requires no labels.
-
-\begin{table}[h]
+\begin{table}[t]
+\caption{Physics-path detection over five noise seeds. Delay is the median time from fault
+onset to first alert.}
+\label{tab:faults}
 \centering
-\scriptsize
-\caption{Classical baselines on the OPS-SAT-AD test split
-         (529 segments, 113 anomalous).
-         RF = Random Forest; IsoF = Isolation Forest.}
+\begin{tabular}{llcc}
+\toprule
+Fault & Magnitude & Detected & Delay (min) \\
+\midrule
+Panel output loss & 5\% & 5/5 & 27.2 \\
+ & 10\% & 5/5 & 0.05 \\
+ & 20--50\% & 5/5 & 0.05 \\
+\midrule
+Battery capacity fade & 5\%, 10\% & 0/5 & -- \\
+ & 20\% & 5/5 & 64.1 \\
+ & 40\% & 5/5 & 42.6 \\
+ & 60\% & 5/5 & 36.2 \\
+\midrule
+Heater stuck on & 0.5\,W & 1/5 & 532 \\
+ & 1\,W & 5/5 & 173 \\
+ & 2\,W & 5/5 & 67.7 \\
+ & 4\,W & 5/5 & 38.6 \\
+ & 8\,W & 5/5 & 17.6 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{residuals.pdf}
+\caption{Residuals between measured and expected values for a 40\% battery-capacity fade at
+orbit 4 (dotted line). Dashed lines are the alert thresholds. Only the SoC residual responds,
+and only during eclipse.}
+\label{fig:resid}
+\end{figure}
+
+\subsection{Anomaly Detection}
+Table~\ref{tab:classical} lists the classical models. The SVM on the published features found
+102 of the 113 test anomalies with 7 false alarms (F1 = 0.919). Adding our 16 features did
+not change its precision or recall, and our features alone gave F1 = 0.907. The unsupervised
+Isolation Forest did much worse than the supervised models. For the best model, F1 per
+channel ranged from 0.92 to 0.96 on the five channels with at least 50 test segments, but was
+0.444 on CADC0894, which has only 5 test anomalies. The live twin cannot compute the published
+features from a stream, since their generator is not part of the twin, so it runs the SVM on
+our own features at F1 = 0.907.
+
+\begin{table}[t]
+\caption{Classical detectors on the official test split ($n = 529$). Every feature set also
+includes the 9 channel indicators.}
 \label{tab:classical}
-\begin{tabular}{@{}llcccc@{}}
-\toprule
-Feats & Model & Prec. & Rec. & F1 & AUC \\
-\midrule
-pub.(27)  & SVM-RBF & 0.936 & 0.903 & 0.919 & 0.986 \\
-pub.(27)  & RF      & 0.918 & 0.894 & 0.906 & 0.990 \\
-pub.(27)  & IsoF    & 0.518 & 0.761 & 0.617 & 0.850 \\
-\midrule
-own(25)   & SVM-RBF & 0.904 & 0.912 & 0.908 & 0.991 \\
-\midrule
-comb.(43) & SVM-RBF & 0.936 & 0.903 & 0.919 & 0.988 \\
-comb.(43) & RF      & 0.943 & 0.885 & 0.913 & 0.994 \\
-comb.(43) & IsoF    & 0.536 & 0.850 & 0.658 & 0.897 \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-The live twin uses only own features computed from the stream, achieving
-F1\,=\,0.908; its streaming predictions match offline scoring on all 529
-segments.
-
-\subsection{Untuned Quantum Comparison}
-\label{sec:untuned}
-
-A first comparison (Table~\ref{tab:untuned}) uses a protocol common in the
-QML literature: 400 balanced training segments (1 seed), fixed regularisation
-$C=10$, and test-set threshold selection.  F1 scores are reported for QSVC,
-VQC, SVM-RBF and Random Forest at each qubit count $d$.
-
-\begin{table}[h]
 \centering
-\small
-\caption{Untuned QML comparison (400 balanced train, 1 seed, test threshold).
-         F1 scores on 529 test segments.}
-\label{tab:untuned}
-\begin{tabular}{@{}lcccc@{}}
+\begin{tabular}{llcccc}
 \toprule
-$d$ & QSVC & VQC & SVM-RBF & RF \\
+Features & Model & Prec. & Rec. & F1 & AUC \\
 \midrule
-2 & 0.466 & 0.219 & 0.621 & 0.581 \\
-4 & 0.646 & 0.438 & 0.779 & 0.759 \\
-6 & 0.624 & 0.432 & 0.829 & 0.813 \\
+Published (18) & Isolation Forest & 0.518 & 0.761 & 0.616 & 0.850 \\
+ & Random Forest & 0.918 & 0.894 & 0.906 & 0.990 \\
+ & SVM-RBF & \textbf{0.936} & 0.903 & \textbf{0.919} & 0.986 \\
+\midrule
+Own (16) & Isolation Forest & 0.509 & 0.735 & 0.601 & 0.858 \\
+ & Random Forest & 0.942 & 0.858 & 0.898 & 0.989 \\
+ & SVM-RBF & 0.904 & \textbf{0.912} & 0.907 & 0.991 \\
+\midrule
+Combined (34) & Isolation Forest & 0.536 & 0.850 & 0.658 & 0.897 \\
+ & Random Forest & 0.943 & 0.885 & 0.913 & \textbf{0.994} \\
+ & SVM-RBF & 0.936 & 0.903 & 0.919 & 0.988 \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-Under this protocol the best QSVC (F1\,=\,0.646 at $d=4$) lags the best
-SVM-RBF (F1\,=\,0.829 at $d=6$) by 18 points.  The VQC consistently
-underperforms QSVC, with final training losses of 1.009, 0.937 and 0.951
-at $d=2,4,6$, suggesting insufficient training iterations at small batch size.
+\begin{table}[t]
+\caption{Untuned comparison: F1 and ROC-AUC on identical PCA features, 400 balanced training
+segments (VQC: 200), fixed $C = 10$, default thresholds, test $n = 529$.}
+\label{tab:qml}
+\centering
+\setlength{\tabcolsep}{3.2pt}
+\begin{tabular}{ccccccccc}
+\toprule
+ & \multicolumn{2}{c}{QSVC} & \multicolumn{2}{c}{VQC} & \multicolumn{2}{c}{SVM-RBF} & \multicolumn{2}{c}{RF} \\
+\cmidrule(lr){2-3}\cmidrule(lr){4-5}\cmidrule(lr){6-7}\cmidrule(lr){8-9}
+$d$ & F1 & AUC & F1 & AUC & F1 & AUC & F1 & AUC \\
+\midrule
+2 & 0.466 & 0.747 & 0.219 & 0.435 & 0.621 & 0.826 & 0.581 & 0.841 \\
+4 & 0.646 & 0.857 & 0.438 & 0.680 & 0.779 & 0.948 & 0.759 & 0.956 \\
+6 & 0.624 & 0.892 & 0.432 & 0.659 & 0.829 & 0.966 & 0.813 & 0.968 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Untuned Comparison}
+Table~\ref{tab:qml} compares the classifiers on identical PCA features and the same 400
+training segments, with the fixed settings of Section~IV-C. The best quantum model, QSVC with four qubits, reached
+F1 = 0.646, while the classical SVM on six components reached 0.829. The classical models
+were ahead at every dimension, in both F1 and ROC-AUC. QSVC's ROC-AUC rose with the number of
+qubits, from 0.747 to 0.892, while its F1 fell slightly from four to six qubits; the models
+are trained on balanced data and tested at 21\% prevalence, so part of the F1 gap is a
+threshold effect, and ROC-AUC is the fairer measure here. The VQC did not train: its
+cross-entropy, measured in bits so that 1.0 is chance, ended at 1.01, 0.94 and 0.95, and its
+two-qubit ROC-AUC was 0.435. We report it as a failed optimisation under a small budget, not
+as evidence about the model class.
+
+The exact kernel matrix took 3.41\,s for 400 segments and 32.68\,s for all 1,594 training
+segments with the library implementation (Fig.~\ref{fig:qml}, right), against milliseconds
+for the RBF kernel.
 
 \subsection{Tuned Comparison on the Full Training Set}
-\label{sec:tuned}
+Table~\ref{tab:fair} and Fig.~\ref{fig:qml} give the tuned results. The QSVC gains most: at
+six qubits its F1 rises from 0.624 in the untuned comparison to 0.769 with the full training
+set and default settings, and to 0.825 with tuning. The classical SVM barely changes with
+tuning (0.856 to 0.860 on the full training set), so the first protocol held back the quantum
+kernel far more than its classical counterpart.
 
-The fair comparison addresses three biases in the untuned protocol.
-(i)~\textbf{Data}: the full 1{,}594-segment training set rather than a
-balanced subsample of 400.
-(ii)~\textbf{Tuning}: 5-fold cross-validation over SVM regularisation
-$C \in \{0.1,1,10,100\}$ and quantum kernel scaling
-$\alpha \in \{0.1,0.25,0.5,1.0\}$; both sides use the same number of
-cross-validation evaluations.
-(iii)~\textbf{Threshold}: chosen on training data only, not on the test set.
-Bootstrap confidence intervals (2{,}000 draws) are computed on the test set.
+On identical inputs the QSVC still trails the classical SVM at every dimension, by 6.7, 0.9
+and 3.5 F1 points at two, four and six qubits, and in PR-AUC and ROC-AUC at all three. At four
+and six qubits it is level with or below the untuned Random Forest. The bootstrap intervals of
+the QSVC and the classical SVM overlap, so with 113 test anomalies a single split cannot show
+that the six-qubit gap is real. Its direction is consistent, though: on the five balanced
+400-segment subsamples the six-qubit QSVC scores $0.755 \pm 0.024$ against $0.797 \pm 0.054$
+for the classical SVM.
 
-PCA retains 35.3\%, 54.0\% and 64.9\% of variance at $d=2, 4, 6$
-respectively; the 35.1\% discarded at $d=6$ sets a natural ceiling for the
-information available to both QSVC and the PCA-limited SVM.
+\begin{table}[t]
+\caption{Tuned models on the full training set ($n = 1{,}594$), test $n = 529$. F1 at the
+threshold chosen on training data, with 95\% bootstrap interval. Random Forest is untuned.}
+\label{tab:fair}
+\centering
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{clccc}
+\toprule
+$d$ & Model & F1 [95\% CI] & PR-AUC & ROC-AUC \\
+\midrule
+2 & QSVC    & 0.533 [0.454, 0.602] & 0.609 & 0.735 \\
+  & SVM-RBF & 0.600 [0.521, 0.673] & 0.637 & 0.785 \\
+  & RF      & 0.573 [0.490, 0.647] & 0.657 & 0.813 \\
+\midrule
+4 & QSVC    & 0.802 [0.742, 0.857] & 0.868 & 0.929 \\
+  & SVM-RBF & 0.811 [0.751, 0.866] & 0.894 & 0.948 \\
+  & RF      & 0.809 [0.750, 0.863] & 0.909 & 0.957 \\
+\midrule
+6 & QSVC    & 0.825 [0.768, 0.875] & 0.919 & 0.963 \\
+  & SVM-RBF & 0.860 [0.808, 0.904] & 0.932 & 0.971 \\
+  & RF      & 0.838 [0.783, 0.887] & 0.936 & 0.974 \\
+\midrule
+43 & SVM-RBF & 0.912 [0.872, 0.948] & 0.965 & 0.980 \\
+\bottomrule
+\end{tabular}
+\end{table}
 
-Results are shown in Table~\ref{tab:fair}; Figure~\ref{fig:qml_fair} plots
-F1 and PR-AUC vs.\ $d$ for all models with 95\% bootstrap error bars.
+Two choices of the tuned QSVC are informative. It selected $C = 100$, the largest value in the
+grid, and at six qubits the smallest bandwidth factor offered ($\alpha = 0.1$; $0.25$ at two and
+four). Both lie on the edge of the grid, so a wider search might raise the QSVC further. A
+small $\alpha$ keeps every rotation angle small, so the fidelity kernel falls off smoothly
+with distance, much like a Gaussian kernel; Shaydulin and Wild~\cite{shaydulin2022} describe
+the same bandwidth effect. The best quantum kernel is therefore the one closest to a classical
+kernel, which argues against reading the near-parity as a quantum effect.
+
+The tuned runs also separate the two effects that the untuned comparison mixed. For the
+classical SVM on all 43 features, F1 is 0.912 with the full training set and
+$0.873 \pm 0.029$ with the balanced 400-segment subsamples; on six PCA components it is 0.860
+and $0.797 \pm 0.054$. The six components keep 64.9\% of the variance (35.3\% and 54.0\% for two
+and four). Projection costs about five F1 points and the smaller training set four to six,
+and the two effects add.
+
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{qml.pdf}
+\caption{Left: test F1 of the tuned models on the full training set against the number of
+qubits, with 95\% bootstrap intervals (offset horizontally for legibility). Right: time to
+compute the exact quantum kernel matrix with the library implementation against training-set
+size ($d = 4$).}
+\label{fig:qml}
+\end{figure}
+
+\subsection{Scheduling}
+Table~\ref{tab:qaoa} summarises 36 QAOA runs on 12 instances. The exact QUBO solver agreed
+with brute force on every instance, so the QUBO encodes the problem correctly. QAOA never
+returned an infeasible schedule, and its best sample was optimal in 35 runs; in the remaining
+one ($n = 8$, $p = 1$) no optimal sample appeared in 4,096 shots and the best was 0.928 of
+the optimum. Greedy was optimal on 11 instances and reached 0.945 on the other. Uniform
+random search with the same 4,096 samples was optimal on all 12.
+
+That last result explains the first. With at most 10 passes there are at most 1,024
+schedules, and 4,096 uniform samples contain the optimum with probability 0.98 or more. The
+informative quantity is how much more often than chance QAOA draws the optimum in one shot,
+$P_{\mathrm{opt}} \cdot 2^{n}$ (Fig.~\ref{fig:qaoa}). Over the 36 runs its median is 0.89,
+and it exceeds 1 in 16 runs. Its mean is 1.30, but that is carried by one run ($n = 10$,
+$p = 1$) that put 1.4\% of its samples on the optimum, 14 times chance; without that run the
+mean is 0.93. The median falls with problem size, from 1.11 at four passes to 0.75 at ten,
+and depth does not help consistently. QAOA took 2.2 to 91.4\,s per instance, against at most
+12\,ms for brute force.
 
 \begin{table*}[t]
+\caption{QAOA scheduling, three instances per size. Values separated by slashes are for
+$p = 1/2/3$. $P_{\mathrm{opt}}$/random is the per-shot probability of the optimal schedule
+relative to uniform sampling ($2^{-n}$).}
+\label{tab:qaoa}
 \centering
-\small
-\caption{Tuned quantum vs.\ classical, full training set (1{,}594 segments).
-         F1 is computed at a training-set threshold; CI\,=\,95\% bootstrap
-         (2{,}000 draws).  SVM-RBF (all 43 features) is the all-feature
-         ceiling; PCA models use $d$ components.}
-\label{tab:fair}
-\begin{tabular}{@{}llccccc@{}}
+\begin{tabular}{cccccccc}
 \toprule
-Model & $d$ & PCA var.\% & F1 & 95\% CI & PR-AUC & ROC-AUC \\
+Passes $n$ & Qubits & Circuit depth & Best-sample ratio (mean) & $P_{\mathrm{opt}}$/random (median) &
+Greedy ratio & Random-search ratio & QAOA time (s) \\
 \midrule
-QSVC   & 2   & 35.3 & 0.533 & 0.454--0.602 & 0.609 & 0.735 \\
-QSVC   & 4   & 54.0 & 0.802 & 0.742--0.857 & 0.868 & 0.929 \\
-QSVC   & 6   & 64.9 & \textbf{0.825} & 0.768--0.875 & 0.919 & 0.963 \\
-\midrule
-SVM-RBF & 2  & 35.3 & 0.600 & 0.521--0.673 & 0.637 & 0.785 \\
-SVM-RBF & 4  & 54.0 & 0.811 & 0.751--0.866 & 0.894 & 0.948 \\
-SVM-RBF & 6  & 64.9 & 0.860 & 0.808--0.904 & 0.932 & 0.971 \\
-\midrule
-SVM-RBF & all 43 & 100 & 0.912 & 0.872--0.948 & 0.965 & 0.980 \\
+4 & 8 & 48/78/108 & 1.000/1.000/1.000 & 1.20/1.23/0.82 & 1.000 & 1.000 & 2.2/2.7/3.9 \\
+6 & 11 & 66/105/144 & 1.000/1.000/1.000 & 0.41/1.19/1.39 & 1.000 & 1.000 & 4.2/6.2/8.8 \\
+8 & 13 & 78/123/168 & 0.976/1.000/1.000 & 0.69/0.81/0.94 & 1.000 & 1.000 & 9.7/12.5/18.8 \\
+10 & 15--16 & 94/147/200 & 1.000/1.000/1.000 & 0.50/0.75/1.50 & 0.982 & 1.000 & 37.5/59.1/91.4 \\
 \bottomrule
 \end{tabular}
 \end{table*}
 
-Under fair conditions the QSVC at $d=6$ reaches F1\,=\,0.825, only 3.5
-points below the SVM-RBF on the \emph{same} six features (F1\,=\,0.860).
-Both confidence intervals overlap substantially, indicating that the
-difference is not statistically distinguishable at this sample size.
-The remaining gap to the all-feature SVM (8.7 points) is consistent with
-the information loss from PCA: the SVM on PCA-6 features scores 0.860,
-so PCA compression costs about 5.2 points relative to the 43-feature SVM,
-and the residual 3.5 points is attributable to the quantum kernel's limited
-expressiveness at 6 qubits.
-
 \begin{figure}[t]
-  \centering
-  \includegraphics[width=\linewidth]{figures/qml_fair.png}
-  \caption{Tuned quantum-vs-classical comparison on OPS-SAT-AD.
-           F1 is measured at a training-set threshold on 529 test segments.
-           Error bars are 95\% bootstrap CIs.  Solid: QSVC; dashed: SVM-RBF;
-           dotted line: all-features SVM ceiling (F1\,=\,0.912).}
-  \label{fig:qml_fair}
-\end{figure}
-
-% ============================================================
-\subsection{Downlink Scheduling with QAOA}
-
-Twelve scheduling instances with 4--10 candidate passes are encoded as
-8--16-qubit QUBO problems.  QAOA is run at depths $p \in \{1,2,3\}$ with
-4{,}096 shots per instance, giving 36 runs total.  Results are summarised in
-Table~\ref{tab:qaoa} and Figure~\ref{fig:qaoa}.
-
-\begin{table}[h]
 \centering
-\small
-\caption{Downlink scheduling results across 12 instances (36 QAOA runs).
-         ``Optimal'' counts instances/runs where the optimal schedule
-         was found; ratio is P(opt)/P(random).}
-\label{tab:qaoa}
-\begin{tabular}{@{}lcc@{}}
-\toprule
-Solver & Optimal & P(opt)/P(rand) \\
-\midrule
-Brute force / exact QUBO & 12/12 & -- \\
-Random (4{,}096 samples)  & 12/12 & 1.00 \\
-Greedy                   & 11/12 & 0.945 (worst) \\
-QAOA best shot           & 35/36 & med.\ 0.89 \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-\begin{figure}[h]
-  \centering
-  \includegraphics[width=\linewidth]{figures/qaoa_scaling.png}
-  \caption{QAOA approximation ratio and P(optimal) vs.\ problem size, by
-           circuit depth $p\in\{1,2,3\}$.  Dashed line marks uniform random
-           search performance.}
-  \label{fig:qaoa}
+\includegraphics[width=\columnwidth]{qaoa.pdf}
+\caption{Left: per-shot probability of the optimal schedule relative to uniform random
+sampling, one marker per run (the run with no optimal sample is drawn at the bottom of the
+axis). Right: mean QAOA run time.}
+\label{fig:qaoa}
 \end{figure}
 
-QAOA finds the optimal schedule in 35 of 36 runs.  However, the probability
-of drawing the optimum in a \emph{single shot} relative to uniform random
-search has median 0.89 (mean 1.30, inflated by one run with ratio 14.3;
-mean without that outlier: 0.93).  QAOA is above random in only 16 of 36
-runs; the median advantage decreases monotonically with problem size
-(1.11 at $n=4$ passes, 0.75 at $n=10$).  At these scales there is no
-reliable per-shot sampling advantage over random search.
-
-Random search with 4{,}096 samples finds the optimum for all 12 instances;
-this high success rate is consistent with the theoretical hit probability of
-0.98 at the largest instance size.
-
-% ============================================================
-\subsection{Physics Path Fault Detection}
-\label{sec:fault}
-
-The physics path generates an alert when a residual exceeds its threshold:
-solar power residual $>3\,\text{W}$, SoC residual $>0.05$, or temperature
-residual $>3\,\text{K}$.  Five independent noise realisations
-($\sigma_\text{solar}=0.5\,\text{W}$, $\sigma_\text{SoC}=0.005$,
-$\sigma_T=0.5\,\text{K}$) are tested per fault type and magnitude.
-No false alarms occur on nominal simulations.
-
-\begin{table}[h]
-\centering
-\small
-\caption{Physics-path detection limits (5 noise seeds per setting).
-         ``Always'' means all 5 seeds detected it.}
-\label{tab:fault}
-\begin{tabular}{@{}lcc@{}}
-\toprule
-Fault & Min.\ detected & Median delay \\
-\midrule
-Panel output loss     & 5\%  & 27 min \\
-Battery capacity fade & 20\% & 64 min \\
-Heater stuck on       & 1\,W & 173 min \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-\begin{figure}[h]
-  \centering
-  \includegraphics[width=\linewidth]{figures/fault_sweep.png}
-  \caption{Detection rate vs.\ fault magnitude for three fault types (5 noise
-           seeds per point).  Zero false-alarm rate on nominal runs.}
-  \label{fig:fault}
-\end{figure}
-
-A panel degradation of 10\% or more is detected within one 10\,s simulation
-step.  Battery fades below 20\% are never detected; the threshold is crossed
-only when the cumulative energy deficit over 10 orbits becomes large.  The
-1\,W heater fault produces a slow temperature drift (median delay 173 min).
-The 0.5\,W heater fault is detected in 1 of 5 seeds only; smaller heater
-faults are within sensor noise.
-
-Figure~\ref{fig:physics} shows example twin output during a 10-orbit run
-with a 20\% panel-degradation fault injected at orbit 4.
-
-\begin{figure}[h]
-  \centering
-  \includegraphics[width=\linewidth]{figures/physics_twin.png}
-  \caption{Physics twin simulation over 10 orbits.  A 20\% panel-degradation
-           fault is injected at orbit 4 (dashed vertical line).  Top: solar
-           power; middle: state of charge; bottom: temperature.}
-  \label{fig:physics}
-\end{figure}
-
-% ============================================================
 \section{Discussion}
+The twin worked as intended. Its physics model matched the analytical results, streamed and
+offline scoring agreed, and a classical detector reached F1 = 0.919 on real satellite
+telemetry. The quantum methods did not improve either task.
 
-\subsection{Quantum Classification}
+For classification, the main lesson is about protocol. Under the untuned, small-sample
+protocol common in early quantum machine learning studies, the QSVC trailed by about 20 F1
+points; with the full training set and a bandwidth search, the gap on identical inputs shrank
+to between one and seven points. Most of the remaining distance to the best detector comes
+from reducing 43 features to six qubits, not from the kernel. Near-parity is still not
+advantage: the QSVC was never ahead, its best bandwidth made it most like a classical kernel,
+and it cost seconds to tens of seconds per fit against milliseconds. This matches earlier
+findings that tuned classical baselines are hard to beat on real data~\cite{huang2021,bowles2024}
+and that fidelity kernels need a small bandwidth to avoid
+concentration~\cite{thanasilp2024,shaydulin2022}. The VQC had a small optimisation budget and a
+noisy, shot-based loss, and we draw no conclusion about it.
 
-The tuned comparison substantially revises the picture from the untuned one.
-When both classifiers receive the full training set and equal hyperparameter
-tuning, QSVC at $d=6$ reaches F1\,=\,0.825 versus SVM-RBF at 0.860 on
-the same features---a gap of 3.5 points rather than 18.  The 95\%
-bootstrap confidence intervals overlap, so the difference is not
-statistically distinguishable at the current test-set size (529 segments).
+For scheduling, the penalty encoding is the likely cause. Slack bits make up a third to a
+half of the qubits, the penalty terms dominate the cost landscape, and a shallow QAOA circuit
+spreads its probability over a space most of which is infeasible. Mixers that keep the state
+inside the feasible set~\cite{hadfield2019} address exactly this. The practical lesson is
+about evaluation: on instances this small, the best of a few thousand samples is optimal for
+any sampler, so results should be reported against random sampling.
 
-The dominant remaining gap is not quantum vs.\ classical but PCA vs.\ raw
-features: the SVM-RBF on all 43 features scores 0.912, while the PCA-6
-SVM-RBF scores 0.860.  PCA compression alone costs $\approx$5.2 F1 points.
-Closing this would require either a quantum circuit that encodes all 43
-features directly into a tractable number of qubits, or a more expressive
-feature map that extracts more information from 6 dimensions.
+\textit{Limitations.} The circuits were simulated without hardware noise, at up to 6 qubits
+for classification and 16 for scheduling, and nothing here predicts behaviour at larger
+sizes. The tuned comparison uses the single official split, so its intervals reflect test-set
+sampling only, and we did not run a paired test on the difference between models; with 113
+test anomalies, differences of a few F1 points are within that noise. The chosen QSVC
+hyperparameters lie on the edge of the search grid. The
+scheduling study has 12 instances drawn from one pass list and one optimiser seed. The
+physics checks were tested on simulated telemetry, because the OPS-SAT channel names are
+anonymised and cannot be mapped to power or temperature, so the telemetry path and the
+physics path of the twin do not share data. The orbit model ignores perturbations, and the
+thermal model has one node. Segments are scored when they close, using the benchmark's
+segment boundaries.
 
-The quadratic kernel-computation cost (Table~\ref{tab:kernel}) already
-constrains what training set sizes are practical.  At $n=1{,}594$ the QSVC
-takes 32.7\,s per fit, versus under 0.1\,s for the SVM.  Scaling to
-$n=10{,}000$ would require ${\approx}1{,}400\,\text{s}$ for the kernel
-matrix alone on a single CPU core.
-
-\subsection{QAOA Scheduling}
-
-At the problem sizes tested (4--10 passes, 8--16 qubits, depth $\le 3$)
-QAOA provides no reliable per-shot sampling advantage over uniform random
-search.  This is consistent with the theoretical prediction that QAOA at
-depth $p=O(1)$ cannot explore the full Hilbert space for large $n$
-\cite{Guerreschi2019}, and with hardware experiments showing that quantum
-speed-up for QAOA requires hundreds of qubits \cite{Guerreschi2019}.
-
-One important finding is that the conflict-penalty formulation used here
-(penalty\,$= \sum_i v_i + 1$) ensured zero infeasible solutions from the
-exact QUBO solver and very few from QAOA.  Penalty tuning is a practical
-design choice that significantly affects the feasibility rate.
-
-\subsection{Limitations}
-
-\begin{itemize}\setlength\itemsep{2pt}
-  \item \textbf{Noiseless simulation.}  All circuits are simulated without
-        hardware noise.  Decoherence and gate error at $>6$ qubits would
-        reduce QSVC fidelity; the hardware advantage could worsen or
-        (speculatively) improve under certain noise regimes.
-  \item \textbf{Physics model fidelity.}  The orbit model is two-body
-        and circular (no J2 perturbation, drag, or TLE propagation); the
-        thermal model has one node and no albedo.  Real CubeSat thermal
-        behaviour is significantly more complex.
-  \item \textbf{Telemetry--physics gap.}  OPS-SAT channel names are
-        anonymised; the physics and telemetry paths cannot share real
-        telemetry data.  The physics path is validated only on simulated
-        measurements.
-  \item \textbf{Single satellite.}  The digital twin models one CubeSat.
-        A constellation-level scheduler would require a larger QUBO
-        (more binary variables) and potentially different QAOA performance.
-\end{itemize}
-
-% ============================================================
 \section{Conclusion}
+We built a reproducible digital-twin testbed for a CubeSat and used it to compare quantum and
+classical methods on the same data. At the problem sizes we could simulate, the quantum methods
+did not beat the classical ones on either task. With fair tuning, a quantum-kernel SVM came
+within one to seven F1 points of a classical SVM on identical features but was never ahead,
+and did best at the bandwidth where it is most classical; a variational classifier failed to
+train. QAOA sampled the optimal schedule no more often than chance, and random search matched
+the exact solver. The size of the quantum deficit depended strongly on the evaluation
+protocol, so we recommend equal tuning, training-chosen thresholds and random-sampling
+baselines as the minimum for such comparisons. Next steps are a wider bandwidth search with
+paired tests, kernel-aligned feature maps, constraint-preserving QAOA mixers, larger
+scheduling instances where random sampling stops working, runs on quantum hardware, and SGP4
+orbit propagation from TLE data.
 
-We have presented a software digital twin for a LEO CubeSat that integrates
-a physics-based health monitor, a telemetry-stream anomaly detector, and a
-QUBO downlink scheduler.  The key empirical findings are:
+\section*{Acknowledgment}
+Claude Code (Anthropic), an AI coding assistant, was used to help develop the code and
+experiments and to draft parts of the text. The author ran the experiments and reviewed and
+verified all content and results.
 
-\begin{enumerate}
-  \item Under a fair, equal-resource protocol, a 6-qubit quantum-kernel SVM
-        reaches F1\,=\,0.825 on the OPS-SAT benchmark, closing the gap to
-        the classical SVM on the \emph{same} PCA-compressed features from
-        18 points (untuned) to 3.5 points (tuned, full training set).
-        Confidence intervals overlap, indicating QSVC is competitive with
-        SVM-RBF when both models are constrained to the same 6-dimensional
-        input.  The remaining gap to the all-features classical ceiling
-        (F1\,=\,0.912) derives primarily from PCA compression rather than
-        an intrinsic quantum disadvantage.
-  \item QAOA at depths 1--3 finds the optimal downlink schedule in 35 of 36
-        instances but provides no reliable per-shot sampling advantage over
-        uniform random search at the tested problem sizes (4--10 passes,
-        8--16 qubits).
-  \item The physics path detects a 5\% solar-panel degradation with zero
-        false alarms but misses gradual battery fade below 20\%.
-\end{enumerate}
-
-These results suggest that quantum-kernel classifiers are competitive with
-classical SVMs when the comparison is made fair---same data, same features,
-same tuning budget---though a clear advantage on this benchmark data has not
-been demonstrated.  Meaningful quantum advantage for either task likely
-requires either hardware with many more low-noise qubits (for QAOA) or
-a principled way to encode high-dimensional features without PCA compression
-(for QSVC).
-
-% ============================================================
-\section*{Acknowledgements}
-
-The experiments were developed with Claude Code (Anthropic) as a coding
-assistant.  The author ran, reviewed, and verified all code and results.
-The OPS-SAT-AD dataset is provided by KP Labs and ESA under MIT licence
-\cite{Ruszczak2024}.
-
-% ============================================================
-\begin{thebibliography}{9}
-
-\bibitem{Biamonte2017}
-J.~Biamonte, P.~Wittek, N.~Pancotti, P.~Rebentrost, N.~Wiebe, and
-S.~Lloyd, ``Quantum machine learning,''
-\emph{Nature}, vol.~549, pp.~195--202, 2017.
-
-\bibitem{Havlicek2019}
-V.~Havl{\v i}{\v c}ek, A.~D.~C{\'o}rcoles, K.~Temme, A.~W.~Harrow,
-A.~Kandala, J.~M.~Gambetta, and J.~Chow, ``Supervised learning with
-quantum-enhanced feature spaces,'' \emph{Nature}, vol.~567,
-pp.~209--212, 2019.
-
-\bibitem{Farhi2014}
-E.~Farhi, J.~Goldstone, and S.~Gutmann, ``A quantum approximate optimization
-algorithm,'' \emph{arXiv:1411.4028}, 2014.
-
-\bibitem{Ruszczak2024}
-B.~Ruszczak, M.~Kotowski, J.~Nalepa, et~al., ``The OPS-SAT benchmark for
-detecting anomalies in satellite telemetry,'' \emph{arXiv:2407.04730}, 2024.
-Dataset: Zenodo record 15108715.
-
-\bibitem{Guerreschi2019}
-G.~G.~Guerreschi and A.~Y.~Matsuura, ``QAOA for max-cut requires hundreds of
-qubits for quantum speed-up,'' \emph{Scientific Reports}, vol.~9, p.~6903,
-2019.
-
-\bibitem{Shaydulin2023}
-R.~Shaydulin, C.~Li, S.~Pistoia, et~al., ``Evidence of scaling advantage
-for the quantum approximate optimization algorithm on a classically
-intractable problem,'' \emph{Science Advances}, vol.~10, 2024.
-
-\bibitem{SchuldKern2021}
-M.~Schuld and N.~Killoran, ``Quantum machine learning models are
-kernel methods,'' \emph{Physical Review Letters}, vol.~126, p.~190501, 2021.
-
-\bibitem{Grieves2017}
-M.~Grieves and J.~Vickers, ``Digital twin: Mitigating unpredictable,
-undesirable emergent behavior in complex systems,''
-in \emph{Transdisciplinary Perspectives on Complex Systems}.
-Springer, 2017, pp.~85--113.
-
+\begin{thebibliography}{00}
+\bibitem{grieves2017} M. Grieves and J. Vickers, ``Digital twin: Mitigating unpredictable,
+undesirable emergent behavior in complex systems,'' in \textit{Transdisciplinary Perspectives
+on Complex Systems}. Cham, Switzerland: Springer, 2017, pp. 85--113.
+\bibitem{glaessgen2012} E. Glaessgen and D. Stargel, ``The digital twin paradigm for future
+NASA and U.S. Air Force vehicles,'' in \textit{Proc. 53rd AIAA/ASME/ASCE/AHS/ASC Structures,
+Structural Dynamics and Materials Conf.}, 2012, Paper AIAA 2012-1818.
+\bibitem{havlicek2019} V. Havl\'{\i}\v{c}ek \textit{et al.}, ``Supervised learning with
+quantum-enhanced feature spaces,'' \textit{Nature}, vol. 567, pp. 209--212, 2019.
+\bibitem{schuld2019} M. Schuld and N. Killoran, ``Quantum machine learning in feature Hilbert
+spaces,'' \textit{Phys. Rev. Lett.}, vol. 122, Art. no. 040504, 2019.
+\bibitem{farhi2014} E. Farhi, J. Goldstone, and S. Gutmann, ``A quantum approximate
+optimization algorithm,'' arXiv:1411.4028, 2014.
+\bibitem{ruszczak2025} B. Ruszczak, K. Kotowski, D. Evans, and J. Nalepa, ``The OPS-SAT
+benchmark for detecting anomalies in satellite telemetry,'' \textit{Sci. Data}, vol. 12, 2025,
+doi: 10.1038/s41597-025-05035-3.
+\bibitem{hundman2018} K. Hundman, V. Constantinou, C. Laporte, I. Colwell, and T. Soderstrom,
+``Detecting spacecraft anomalies using LSTMs and nonparametric dynamic thresholding,'' in
+\textit{Proc. 24th ACM SIGKDD Int. Conf. Knowledge Discovery and Data Mining}, 2018,
+pp. 387--395.
+\bibitem{kotowski2024} K. Kotowski \textit{et al.}, ``European Space Agency benchmark for
+anomaly detection in satellite telemetry,'' arXiv:2406.17826, 2024.
+\bibitem{huang2021} H.-Y. Huang \textit{et al.}, ``Power of data in quantum machine
+learning,'' \textit{Nat. Commun.}, vol. 12, Art. no. 2631, 2021.
+\bibitem{thanasilp2024} S. Thanasilp, S. Wang, M. Cerezo, and Z. Holmes, ``Exponential
+concentration in quantum kernel methods,'' \textit{Nat. Commun.}, vol. 15, Art. no. 5200, 2024.
+\bibitem{bowles2024} J. Bowles, S. Ahmed, and M. Schuld, ``Better than classical? The subtle
+art of benchmarking quantum machine learning models,'' arXiv:2403.07059, 2024.
+\bibitem{shaydulin2022} R. Shaydulin and S. M. Wild, ``Importance of kernel bandwidth in
+quantum machine learning,'' \textit{Phys. Rev. A}, vol. 106, Art. no. 042407, 2022.
+\bibitem{cerezo2021} M. Cerezo \textit{et al.}, ``Variational quantum algorithms,''
+\textit{Nat. Rev. Phys.}, vol. 3, pp. 625--644, 2021.
+\bibitem{mcclean2018} J. R. McClean, S. Boixo, V. N. Smelyanskiy, R. Babbush, and H. Neven,
+``Barren plateaus in quantum neural network training landscapes,'' \textit{Nat. Commun.},
+vol. 9, Art. no. 4812, 2018.
+\bibitem{lucas2014} A. Lucas, ``Ising formulations of many NP problems,'' \textit{Front.
+Phys.}, vol. 2, Art. no. 5, 2014.
+\bibitem{hadfield2019} S. Hadfield, Z. Wang, B. O'Gorman, E. G. Rieffel, D. Venturelli, and
+R. Biswas, ``From the quantum approximate optimization algorithm to a quantum alternating
+operator ansatz,'' \textit{Algorithms}, vol. 12, no. 2, Art. no. 34, 2019.
+\bibitem{stollenwerk2020} T. Stollenwerk, V. Michaud, E. Lobe, M. Picard, A. Basermann, and
+T. Botter, ``Image acquisition planning for Earth observation satellites with a quantum
+annealer,'' arXiv:2006.09724, 2020.
+\bibitem{rainjonneau2023} S. Rainjonneau \textit{et al.}, ``Quantum algorithms applied to
+satellite mission planning for Earth observation,'' \textit{IEEE J. Sel. Topics Appl. Earth
+Observ. Remote Sens.}, vol. 16, pp. 7062--7075, 2023.
+\bibitem{vallado2013} D. A. Vallado, \textit{Fundamentals of Astrodynamics and Applications},
+4th ed. Hawthorne, CA, USA: Microcosm Press, 2013.
+\bibitem{gilmore2002} D. G. Gilmore, Ed., \textit{Spacecraft Thermal Control Handbook, Volume
+I: Fundamental Technologies}, 2nd ed. El Segundo, CA, USA: Aerospace Press, 2002.
+\bibitem{pedregosa2011} F. Pedregosa \textit{et al.}, ``Scikit-learn: Machine learning in
+Python,'' \textit{J. Mach. Learn. Res.}, vol. 12, pp. 2825--2830, 2011.
+\bibitem{liu2008} F. T. Liu, K. M. Ting, and Z.-H. Zhou, ``Isolation forest,'' in
+\textit{Proc. 8th IEEE Int. Conf. Data Mining}, 2008, pp. 413--422.
+\bibitem{breiman2001} L. Breiman, ``Random forests,'' \textit{Mach. Learn.}, vol. 45,
+pp. 5--32, 2001.
+\bibitem{cortes1995} C. Cortes and V. Vapnik, ``Support-vector networks,'' \textit{Mach.
+Learn.}, vol. 20, pp. 273--297, 1995.
+\bibitem{powell1994} M. J. D. Powell, ``A direct search optimization method that models the
+objective and constraint functions by linear interpolation,'' in \textit{Advances in
+Optimization and Numerical Analysis}. Dordrecht, The Netherlands: Springer, 1994, pp. 51--67.
+\bibitem{qiskit2024} A. Javadi-Abhari \textit{et al.}, ``Quantum computing with Qiskit,''
+arXiv:2405.08810, 2024.
 \end{thebibliography}
 
 \end{document}

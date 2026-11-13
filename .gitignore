@@ -5,3 +5,7 @@ data/raw/
 *.db
 .pytest_cache/
 results/models/
+paper/*.aux
+paper/*.log
+paper/*.out
+paper/main.pdf
